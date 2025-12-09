@@ -13,15 +13,6 @@
     "yahoo-fantasy": "^1.0.0"
   },
   "engines": {
-    "node": ">=18"
-  },
-  "keywords": [
-    "yahoo",
-    "fantasy",
-    "football",
-    "express",
-    "render"
-  ],
-  "author": "Your Name",
-  "license": "MIT"
+    "node": "18.x"
+  }
 }
