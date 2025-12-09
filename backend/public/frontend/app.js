@@ -1,4 +1,4 @@
-const backend = "https://your-render-backend.onrender.com";
+const backend = "https://yahoo-fantasyland.onrender.com/";
 
 
 document.getElementById("authBtn").onclick = () => {
