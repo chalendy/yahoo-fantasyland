@@ -1,15 +1,27 @@
 {
-"name": "yahoo-fantasy-backend",
-"version": "1.0.0",
-"type": "module",
-"main": "server.js",
-"scripts": {
-"start": "node server.js"
-},
-"dependencies": {
-"express": "^4.18.2",
-"yahoo-fantasy-api": "^1.0.0",
-"dotenv": "^16.0.3"
-"cors": "^2.8.5"
-}
+  "name": "yahoo-fantasyland",
+  "version": "1.0.0",
+  "description": "Yahoo Fantasy Football League Website",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.0.3",
+    "yahoo-fantasy-api": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "yahoo",
+    "fantasy",
+    "football",
+    "express",
+    "render"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
