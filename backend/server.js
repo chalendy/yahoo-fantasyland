@@ -4,6 +4,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
+import express from "express";
+const __dirname = path.resolve();
+app.use(express.static(path.join(__dirname, "public"))); // if you put frontend files into backend/public
 
 const app = express();
 app.use(cors());
