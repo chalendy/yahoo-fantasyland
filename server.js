@@ -83,7 +83,6 @@ app.get("/league/:leagueKey/scoreboard", async (req, res) => {
   try {
     const { leagueKey } = req.params;
 
-    // Example: fetch league scoreboard using Yahoo Fantasy API
     const apiRes = await fetch(
       `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard?format=json`,
       {
