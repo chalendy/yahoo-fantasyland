@@ -13,8 +13,8 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to frontend folder
-const frontendPath = path.join(__dirname, "frontend");
+// --- Path to frontend folder ---
+const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 
 // --- Yahoo OAuth Setup ---
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -28,13 +28,11 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
 const yf = new YahooFantasy(CLIENT_ID, CLIENT_SECRET);
 
 // --- OAuth Routes ---
-// Start OAuth
 app.get("/auth/start", (req, res) => {
   const url = yf.authURL();
   res.redirect(url);
 });
 
-// OAuth callback
 app.get("/auth/callback", async (req, res) => {
   try {
     const { code } = req.query;
