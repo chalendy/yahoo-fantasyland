@@ -1,59 +1,26 @@
 import express from "express";
-import YahooFantasy from "yahoo-fantasy";
-import cors from "cors";
-import dotenv from "dotenv";
-dotenv.config();
-
 import path from "path";
-import express from "express";
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, "public"))); // if you put frontend files into backend/public
+import { fileURLToPath } from "url";
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 3000;
 
+// Fix for ES modules (__dirname is not available by default)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+// Path to the frontend build folder
+const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 
+// Serve static frontend files
+app.use(express.static(frontendPath));
 
-const yf = new YahooFantasy(CLIENT_ID, CLIENT_SECRET);
-
-
-// Start OAuth
-app.get("/auth/start", (req, res) => {
-const url = yf.authURL();
-res.redirect(url);
+// Catch-all route for Single Page Apps
+app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-
-// OAuth callback
-app.get("/auth/callback", async (req, res) => {
-try {
-const { code } = req.query;
-const tokens = await yf.authCallback(code);
-global.oauthTokens = tokens; // TEMP storage
-res.send("Yahoo authentication successful! You may now close this page.");
-} catch (err) {
-console.error(err);
-res.status(500).send("Authentication failed");
-}
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
-
-
-// Example: League scoreboard
-app.get("/league/:leagueKey/scoreboard", async (req, res) => {
-try {
-const leagueKey = req.params.leagueKey;
-yf.setUserToken(global.oauthTokens.access_token);
-const data = await yf.league.scoreboard(leagueKey);
-res.json(data);
-} catch (err) {
-console.error(err);
-res.status(500).send("Error fetching scoreboard");
-}
-});
-
-
-app.listen(3000, () => console.log("Backend running on port 3000"));
