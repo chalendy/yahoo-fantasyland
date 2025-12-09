@@ -16,15 +16,6 @@ const __dirname = path.dirname(__filename);
 // Path to frontend folder
 const frontendPath = path.join(__dirname, "frontend");
 
-// Serve frontend files
-app.use(express.static(frontendPath));
-
-// Catch-all route for frontend SPA
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/auth/") || req.path.startsWith("/league/")) return next();
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
-
 // --- Yahoo OAuth Setup ---
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -36,6 +27,7 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
 
 const yf = new YahooFantasy(CLIENT_ID, CLIENT_SECRET);
 
+// --- OAuth Routes ---
 // Start OAuth
 app.get("/auth/start", (req, res) => {
   const url = yf.authURL();
@@ -55,13 +47,10 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
-// Example API route: get league scoreboard
+// --- League API route ---
 app.get("/league/:leagueKey/scoreboard", async (req, res) => {
+  if (!global.oauthTokens) return res.status(401).send("Not authenticated. Please sign in first.");
   try {
-    if (!global.oauthTokens) {
-      return res.status(401).send("Not authenticated. Please sign in first.");
-    }
-
     yf.setUserToken(global.oauthTokens.access_token);
     const data = await yf.league.scoreboard(req.params.leagueKey);
     res.json(data);
@@ -69,6 +58,15 @@ app.get("/league/:leagueKey/scoreboard", async (req, res) => {
     console.error("Error fetching scoreboard:", err);
     res.status(500).send("Error fetching scoreboard");
   }
+});
+
+// --- Serve Frontend ---
+// Static frontend files
+app.use(express.static(frontendPath));
+
+// Catch-all for frontend SPA (after API/OAuth routes)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // Start server
