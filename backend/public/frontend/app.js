@@ -262,3 +262,9 @@ function renderMatchupCards(matchups) {
     matchupsContainer.appendChild(card);
   });
 }
+
+// Auto-load scoreboard JSON on page load
+window.addEventListener("DOMContentLoaded", () => {
+  if (loadJsonBtn) loadJsonBtn.click();
+});
+
