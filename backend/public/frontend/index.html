@@ -20,12 +20,10 @@
       <section class="controls-card">
         <h2>Controls</h2>
         <p class="hint">
-          1. Sign in with Yahoo · 2. Load the raw scoreboard JSON · 3. Render this week’s matchups.
+          Sign in with Yahoo. The page will automatically load this week’s matchups and league standings.
+          You can re-render the matchups with the button below.
         </p>
         <div class="button-row">
-          <button id="loadJsonBtn" class="btn btn-secondary">
-            Load Scoreboard JSON
-          </button>
           <button id="loadMatchupsBtn" class="btn btn-accent">
             Load This Week’s Matchups
           </button>
@@ -37,17 +35,8 @@
         <section class="matchups-panel">
           <div class="panel-header">
             <h2>This Week's Matchups</h2>
-
-              <div style="display:flex; align-items:center; gap:8px;">
-                <label for="weekSelect" style="font-size:0.8rem; color:var(--text-muted);">
-                  Week:
-              </label>
-          <select id="weekSelect" class="week-dropdown"></select>
-
-      <span id="weekLabel" class="week-label"></span>
-      </div>
-      </div>
-
+            <span id="weekLabel" class="week-label"></span>
+          </div>
           <div id="matchupsContainer" class="matchups-grid">
             <!-- Matchup cards get injected here -->
           </div>
@@ -55,12 +44,11 @@
 
         <section class="json-panel">
           <div class="panel-header">
-            <h2>Scoreboard JSON</h2>
-            <span class="json-pill">Debug View</span>
+            <h2>League Standings</h2>
           </div>
-          <pre id="jsonOutput" class="json-output">
-Click "Load Scoreboard JSON" to see the raw Yahoo API response here.
-          </pre>
+          <div id="standingsContainer" class="standings-container">
+            <!-- Standings table will be injected here -->
+          </div>
         </section>
       </section>
     </main>
