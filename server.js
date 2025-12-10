@@ -87,33 +87,36 @@ app.get("/auth/callback", async (req, res) => {
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+    return res.status(401).json({
+      error: "Not authenticated. Please click Sign In first.",
+    });
+  }
+
+  const requestedWeek = req.query.week;
+
+  // Build URL
+  let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+
+  if (requestedWeek) {
+    url += `&week=${requestedWeek}`;
   }
 
   try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
-
     const apiRes = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    const bodyText = await apiRes.text();
+    const text = await apiRes.text();
 
     if (!apiRes.ok) {
-      console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
-      return res
-        .status(500)
-        .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+      console.error("Yahoo API error:", apiRes.status, text);
+      return res.status(apiRes.status).send(text);
     }
 
-    // Yahoo already returns JSON (because of ?format=json)
-    const data = JSON.parse(bodyText);
-    res.json(data);
+    res.send(text);
   } catch (err) {
-    console.error("Error fetching scoreboard:", err);
-    res.status(500).json({ error: "Failed to fetch scoreboard" });
+    console.error("Server scoreboard error:", err);
+    res.status(500).send("Failed to fetch scoreboard.");
   }
 });
 
