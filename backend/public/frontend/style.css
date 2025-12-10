@@ -1,366 +1,295 @@
-/* Global layout */ 
+/* ============================================
+   GLOBAL THEME (old purple glossy look)
+============================================ */
 
 :root {
   --bg: #060714;
   --bg-elevated: #101322;
-  --bg-elevated-soft: #15182a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --accent: #7f5af0;
-  --accent-soft: rgba(127, 90, 240, 0.15);
-  --accent-strong: #ff8e3c;
+  --bg-soft: #15182a;
+
   --text: #f5f5f7;
   --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
-  --radius-lg: 16px;
-  --radius-md: 10px;
+
+  --accent: #7f5af0;
+  --accent-light: rgba(127, 90, 240, 0.18);
+  --accent-strong: #ff8e3c;
+  --accent-soft: rgba(255, 142, 60, 0.12);
+
+  --radius-lg: 22px;
+  --radius-md: 16px;
+
+  --border-subtle: rgba(255,255,255,0.08);
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
 body {
   margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
+  font-family: system-ui, sans-serif;
+  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%, #040510 100%);
   color: var(--text);
 }
 
-/* App shell */
-
-.app-shell {
-  min-height: 100vh;
-  max-width: 1200px;
+.page-wrapper {
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 24px 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  padding: 20px 20px 50px;
 }
 
-.app-header {
+/* ============================================
+   HEADER (restored layout)
+============================================ */
+
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  padding: 14px 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.app-header h1 {
+.title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
 }
 
 .subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
+  color: var(--text-muted);
   font-size: 0.9rem;
-  color: var(--text-muted);
 }
 
-.app-main {
+.header-controls {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.app-footer {
-  margin-top: auto;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* Controls */
-
-.controls-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px 14px;
-  border: 1px solid var(--border-subtle);
-}
-
-.controls-card h2 {
-  margin: 0 0 6px;
-  font-size: 1rem;
-}
-
-.hint {
-  margin: 0 0 12px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.status-message {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--accent-strong);
-}
-
-/* Buttons */
-
-.btn {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-  white-space: nowrap;
+  gap: 10px;
 }
+
+#weekSelect {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+/* ============================================
+   BUTTONS
+============================================ */
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), #c34eff);
   color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
   box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
 }
 
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
-}
-
 .btn-secondary {
-  background: var(--bg-elevated-soft);
+  padding: 8px 14px;
+  background: var(--bg-soft);
   color: var(--text);
+  border-radius: 999px;
   border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background: #1e2236;
 }
 
 .btn-accent {
-  background: var(--accent-soft);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-strong);
   color: var(--accent-strong);
-  border: 1px solid rgba(255, 142, 60, 0.3);
+  background: var(--accent-soft);
 }
 
-.btn-accent:hover {
-  background: rgba(127, 90, 240, 0.22);
-}
+/* ============================================
+   CONTROLS CARD (restored)
+============================================ */
 
-/* Layout: matchups + JSON */
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
-  gap: 16px;
-}
-
-.matchups-panel,
-.json-panel {
+.controls-card {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
+  padding: 20px 26px;
   border: 1px solid var(--border-subtle);
-  padding: 14px 16px 16px;
+  margin-top: 14px;
+  box-shadow: 0 14px 35px rgba(0,0,0,0.35);
+}
+
+.controls-card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.helptext {
+  margin: 6px 0 16px;
+  color: var(--text-muted);
+}
+
+.control-btn-row {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.status-message {
+  margin-top: 4px;
+  color: var(--accent-strong);
+}
+
+/* ============================================
+   MAIN GRID (old layout restored)
+============================================ */
+
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+  gap: 24px;
+  margin-top: 22px;
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   MATCHUPS PANEL
+============================================ */
+
+.matchups-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: 24px 26px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
 }
 
 .panel-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
 
 .panel-header h2 {
+  font-size: 1.3rem;
   margin: 0;
-  font-size: 1rem;
 }
 
-.week-label {
-  font-size: 0.8rem;
-  color: var(--accent-strong);
-  background: rgba(255, 142, 60, 0.12);
-  border-radius: 999px;
+.badge {
+  background: var(--accent-soft);
   padding: 4px 10px;
-}
-
-.json-pill {
-  font-size: 0.75rem;
-  color: var(--text-muted);
   border-radius: 999px;
-  padding: 3px 8px;
-  border: 1px solid var(--border-subtle);
+  color: var(--accent-strong);
+  border: 1px solid rgba(255,142,60,0.4);
 }
-
-/* Matchups */
 
 .matchups-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 480px;
-  overflow-y: auto;
-  padding-right: 4px;
+  gap: 20px;
+  margin-top: 18px;
 }
+
+/* ============================================
+   MATCHUP CARDS (restored sizing + spacing)
+============================================ */
 
 .matchup-card {
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+  background: radial-gradient(circle at top left, var(--accent-light), transparent 55%),
               radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
-              var(--bg-elevated-soft);
+              var(--bg-soft);
+
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  padding: 10px 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+  box-shadow: 0 12px 26px rgba(0,0,0,0.35);
 
-.matchup-header-row {
+  padding: 16px 22px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  gap: 16px;
 }
 
-.matchup-week-label {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+/* team columns */
 
-.matchup-tag {
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted);
-}
-
-/* Body layout */
-
-.matchup-body {
-  display: grid;
-  grid-template-columns: minmax(0, 6fr) auto minmax(0, 6fr);
-  align-items: center;
-  gap: 10px;
-}
-
-.team-column {
+.team-column__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.team-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.team-info-right {
-  flex-direction: row-reverse;
+  gap: 12px;
 }
 
 .team-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25);
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.placeholder-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .team-name {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
-.team-metadata {
-  font-size: 0.75rem;
+.team-proj,
+.team-winprob {
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
 .team-score {
   font-size: 1.4rem;
+  margin-top: 6px;
   font-weight: 700;
 }
 
-/* VS middle column */
-
-.vs-column {
+.matchup-card__center {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.vs-pill {
-  padding: 3px 8px;
+.matchup-card__week {
+  background: rgba(255,255,255,0.05);
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 0.8rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  font-size: 0.82rem;
 }
 
-/* JSON output */
+/* ============================================
+   JSON PANEL (restored)
+============================================ */
+
+.json-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 22px 24px;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+}
+
+.json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debug-pill {
+  background: rgba(255,255,255,0.06);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
 
 .json-output {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
   background: #050710;
-  color: #e5e5f5;
-  font-size: 0.75rem;
-  max-height: 430px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Responsive */
-
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .json-panel {
-    max-height: 300px;
-  }
-}
-
-@media (max-width: 600px) {
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .matchup-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .vs-column {
-    justify-content: flex-start;
-  }
-
-  .team-column {
-    justify-content: space-between;
-  }
-
-  .team-score {
-    font-size: 1.2rem;
-  }
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-top: 12px;
+  max-height: 600px;
+  overflow-y: auto;
+  font-size: 0.8rem;
 }
