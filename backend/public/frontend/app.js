@@ -55,19 +55,22 @@ function populateWeekDropdown(meta) {
 async function loadScoreboardForWeek(week) {
   try {
     setStatus(`Loading week ${week}...`);
+
     const res = await fetch(`${backendBase}/scoreboard`);
     if (!res.ok) {
       const text = await res.text();
-      console.error("Scoreboard error:", res.status, text);
-      setStatus("Failed to load scoreboard JSON.");
+      console.warn("Scoreboard not available yet:", res.status, text);
+      setStatus("Not authenticated yet.");
       return null;
     }
+
     const data = await res.json();
     scoreboardData = data;
+
     return data;
   } catch (err) {
     console.error("Fetch error:", err);
-    setStatus("Error fetching scoreboard JSON.");
+    setStatus("Error fetching scoreboard.");
     return null;
   }
 }
@@ -75,8 +78,7 @@ async function loadScoreboardForWeek(week) {
 // Extract matchups ONLY for selected week
 function extractMatchups(data) {
   try {
-    const fc = data.fantasy_content;
-    const leagueArray = fc.league;
+    const leagueArray = data.fantasy_content.league;
     const scoreboard = leagueArray[1].scoreboard;
     const scoreboardRoot = scoreboard["0"];
     const matchupsObj = scoreboardRoot.matchups;
@@ -86,15 +88,12 @@ function extractMatchups(data) {
     Object.keys(matchupsObj)
       .filter((k) => k !== "count")
       .forEach((key) => {
-        const matchupWrapper = matchupsObj[key];
-        const matchup = matchupWrapper.matchup;
-        const matchupInner = matchup["0"];
-        const teamsObj = matchupInner.teams;
+        const matchup = matchupsObj[key].matchup["0"];
+        const teamsObj = matchup.teams;
 
         const team0 = teamsObj["0"].team;
         const team1 = teamsObj["1"].team;
 
-        // metadata + stats
         const team0Meta = team0[0];
         const team0Stats = team0[1];
         const team1Meta = team1[0];
@@ -137,7 +136,7 @@ function extractMatchups(data) {
   }
 }
 
-// Render matchups (unchanged)
+// Render matchups
 function renderMatchupCards(matchups) {
   matchupsContainer.innerHTML = "";
 
@@ -205,12 +204,21 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// Load JSON (unchanged except storing metadata)
+// ---------- BUTTON HANDLERS ----------
+
+// SIGN IN
+if (authBtn) {
+  authBtn.addEventListener("click", () => {
+    window.location.href = `${backendBase}/auth/start`;
+  });
+}
+
+// LOAD JSON
 if (loadJsonBtn) {
   loadJsonBtn.addEventListener("click", async () => {
-    scoreboardData = await loadScoreboardForWeek(selectedWeek);
-
+    scoreboardData = await loadScoreboardForWeek(selectedWeek ?? 1);
     if (!scoreboardData) return;
+
     jsonOutput.textContent = JSON.stringify(scoreboardData, null, 2);
 
     const leagueMeta = scoreboardData?.fantasy_content?.league?.[0];
@@ -221,7 +229,7 @@ if (loadJsonBtn) {
   });
 }
 
-// Render matchups for selected week
+// RENDER MATCHUPS
 if (loadMatchupsBtn) {
   loadMatchupsBtn.addEventListener("click", () => {
     if (!scoreboardData) {
@@ -231,16 +239,17 @@ if (loadMatchupsBtn) {
 
     const matchups = extractMatchups(scoreboardData);
     renderMatchupCards(matchups);
-    setStatus(`Showing week ${selectedWeek}`);
+
+    weekLabel.textContent = `Week ${selectedWeek}`;
+    setStatus(`Showing matchups for week ${selectedWeek}`);
   });
 }
 
-// When week changes → load new scoreboard + rerender
+// WEEK CHANGE
 weekSelect?.addEventListener("change", async () => {
   selectedWeek = parseInt(weekSelect.value);
   setStatus(`Week changed to ${selectedWeek}`);
 
-  // Fetch again
   scoreboardData = await loadScoreboardForWeek(selectedWeek);
   if (!scoreboardData) return;
 
@@ -248,10 +257,13 @@ weekSelect?.addEventListener("change", async () => {
   renderMatchupCards(matchups);
 
   weekLabel.textContent = `Week ${selectedWeek}`;
-  setStatus(`Showing matchups for week ${selectedWeek}`);
 });
 
-// Auto-load everything on page load (kept exactly the same)
+// ---------- SAFE AUTO-LOAD (won’t block Sign In) ----------
 window.addEventListener("DOMContentLoaded", async () => {
-  scoreboardData = await loadScoreboardForWeek(selectedWeek ?? 1);
+  try {
+    await loadScoreboardForWeek(selectedWeek ?? 1);
+  } catch {
+    console.warn("Auto-load skipped (not authenticated).");
+  }
 });
