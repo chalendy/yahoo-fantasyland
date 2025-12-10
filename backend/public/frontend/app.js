@@ -14,127 +14,237 @@ const weekSelect = document.getElementById("weekSelect");
 let scoreboardData = null;
 let selectedWeek = null;
 
-// -------------------------------------------------------------
+// ------------------------------------------------
 // Helpers
-// -------------------------------------------------------------
+// ------------------------------------------------
 
 function setStatus(msg) {
   if (statusMessage) statusMessage.textContent = msg;
 }
 
-function pluckField(arr, key) {
-  if (!Array.isArray(arr)) return null;
-  for (const obj of arr) {
-    if (obj && obj[key] !== undefined) return obj[key];
+function pluckField(objArray, key) {
+  if (!Array.isArray(objArray)) return null;
+  for (const entry of objArray) {
+    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
+      return entry[key];
+    }
   }
   return null;
 }
 
-// -------------------------------------------------------------
-// Week dropdown builder
-// -------------------------------------------------------------
-function populateWeekDropdown(meta) {
-  const start = parseInt(meta.start_week);
-  const end = parseInt(meta.end_week);
-  const current = parseInt(meta.current_week);
+// ------------------------------------------------
+// Auth button
+// ------------------------------------------------
+
+if (authBtn) {
+  authBtn.addEventListener("click", () => {
+    window.location.href = `${backendBase}/auth/start`;
+  });
+}
+
+// ------------------------------------------------
+// Populate week dropdown
+// ------------------------------------------------
+
+function populateWeekDropdown(leagueMeta) {
+  if (!leagueMeta) return;
+
+  const start = parseInt(leagueMeta.start_week);
+  const end = parseInt(leagueMeta.end_week);
+
+  if (!start || !end) return;
 
   weekSelect.innerHTML = "";
-
   for (let w = start; w <= end; w++) {
     const opt = document.createElement("option");
     opt.value = w;
     opt.textContent = `Week ${w}`;
-    if (w === current) opt.selected = true;
     weekSelect.appendChild(opt);
   }
 
-  selectedWeek = current;
+  selectedWeek = parseInt(leagueMeta.current_week);
+  weekSelect.value = selectedWeek;
 }
 
-// -------------------------------------------------------------
-// Fetch scoreboard for selected week
-// -------------------------------------------------------------
+// ------------------------------------------------
+// Load scoreboard JSON manually
+// ------------------------------------------------
+
+if (loadJsonBtn) {
+  loadJsonBtn.addEventListener("click", async () => {
+    try {
+      setStatus("Loading scoreboard JSON...");
+      jsonOutput.textContent = "Loading...";
+
+      const res = await fetch(`${backendBase}/scoreboard`);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Scoreboard error:", res.status, text);
+        jsonOutput.textContent = `Error: ${res.status}\n${text}`;
+        setStatus("Failed to load scoreboard JSON.");
+        return;
+      }
+
+      const data = await res.json();
+      scoreboardData = data;
+
+      jsonOutput.textContent = JSON.stringify(data, null, 2);
+      setStatus("Scoreboard JSON loaded successfully.");
+
+      const leagueArr = data?.fantasy_content?.league;
+      if (leagueArr) {
+        const leagueMeta = leagueArr[0];
+        const scoreboard = leagueArr[1]?.scoreboard;
+
+        const week = scoreboard?.week ?? leagueMeta?.current_week;
+        if (weekLabel) weekLabel.textContent = `Week ${week}`;
+
+        populateWeekDropdown(leagueMeta);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      jsonOutput.textContent = "Error fetching scoreboard. See console.";
+      setStatus("Error fetching scoreboard JSON.");
+    }
+  });
+}
+
+// ------------------------------------------------
+// Load scoreboard for a selected week
+// ------------------------------------------------
+
 async function loadScoreboardForWeek(week) {
   try {
     setStatus(`Loading week ${week}...`);
+    selectedWeek = week;
 
     const res = await fetch(`${backendBase}/scoreboard?week=${week}`);
-
     if (!res.ok) {
       const text = await res.text();
-      console.warn("Not authenticated:", res.status, text);
-      setStatus("Please sign in first.");
+      console.error("Scoreboard error:", res.status, text);
+      setStatus("Failed to load scoreboard.");
       return null;
     }
 
     const data = await res.json();
     scoreboardData = data;
-    selectedWeek = week;
-    return data;
 
+    if (jsonOutput) {
+      jsonOutput.textContent = JSON.stringify(data, null, 2);
+    }
+
+    const leagueArr = data?.fantasy_content?.league;
+    const leagueMeta = leagueArr?.[0];
+    const scoreboard = leagueArr?.[1]?.scoreboard;
+
+    const realWeek = scoreboard?.week ?? leagueMeta?.current_week;
+    if (weekLabel) weekLabel.textContent = `Week ${realWeek}`;
+
+    if (weekSelect && weekSelect.innerHTML.trim() === "") {
+      populateWeekDropdown(leagueMeta);
+    }
+
+    return data;
   } catch (err) {
-    console.error("Fetch error:", err);
-    setStatus("Error loading scoreboard.");
+    console.error("loadScoreboardForWeek error:", err);
     return null;
   }
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------
 // Extract matchups
-// -------------------------------------------------------------
+// ------------------------------------------------
+
 function extractMatchups(data) {
   try {
-    const leagueArr = data.fantasy_content.league;
+    const fc = data.fantasy_content;
+    const leagueArr = fc.league;
+    const leagueMeta = leagueArr[0];
     const scoreboard = leagueArr[1].scoreboard;
-    const root = scoreboard["0"];
-    const matchupsObj = root.matchups;
+
+    const scoreboardRoot = scoreboard["0"];
+    const matchupsObj = scoreboardRoot.matchups;
+    const weekNumber = scoreboard.week ?? leagueMeta.current_week;
 
     const result = [];
 
     Object.keys(matchupsObj)
       .filter((k) => k !== "count")
       .forEach((key) => {
-        const matchup = matchupsObj[key].matchup["0"];
-        const teamsObj = matchup.teams;
+        const wrapper = matchupsObj[key];
+        const matchup = wrapper.matchup;
+        const matchupInner = matchup["0"];
 
-        const t0 = teamsObj["0"].team;
-        const t1 = teamsObj["1"].team;
+        const teamsObj = matchupInner.teams;
 
-        const t0Meta = t0[0];
-        const t0Stats = t0[1];
-        const t1Meta = t1[0];
-        const t1Stats = t1[1];
+        const team0 = teamsObj["0"].team;
+        const team1 = teamsObj["1"].team;
+
+        const team0Meta = team0[0];
+        const team1Meta = team1[0];
+        const team0Stats = team0[1];
+        const team1Stats = team1[1];
+
+        // Extract metadata
+        const teamAName = pluckField(team0Meta, "name") || "Unknown Team";
+        const teamBName = pluckField(team1Meta, "name") || "Unknown Team";
+
+        const teamALogoObj = pluckField(team0Meta, "team_logos");
+        const teamBLogoObj = pluckField(team1Meta, "team_logos");
+
+        const teamALogo =
+          teamALogoObj?.[0]?.team_logo?.url ?? null;
+        const teamBLogo =
+          teamBLogoObj?.[0]?.team_logo?.url ?? null;
+
+        const teamAScore = team0Stats?.team_points?.total ?? "0.00";
+        const teamBScore = team1Stats?.team_points?.total ?? "0.00";
+
+        const teamAProj = team0Stats?.team_projected_points?.total ?? "0.00";
+        const teamBProj = team1Stats?.team_projected_points?.total ?? "0.00";
+
+        const teamAProb = team0Stats?.win_probability ?? null;
+        const teamBProb = team1Stats?.win_probability ?? null;
+
+        // Determine matchup type
+        const isPlayoffs = matchup.is_playoffs === "1";
+        const isConsolation = matchup.is_consolation === "1";
+
+        let matchupTag = null; // hide tag for regular season
+        if (isPlayoffs) matchupTag = "Playoffs";
+        else if (isConsolation) matchupTag = "Consolation";
 
         result.push({
-          week: selectedWeek,
+          week: weekNumber,
+          matchupTag,
           teamA: {
-            name: pluckField(t0Meta, "name") || "Unknown",
-            logo: pluckField(t0Meta, "team_logos")?.[0]?.team_logo?.url ?? null,
-            score: t0Stats?.team_points?.total ?? "0.00",
-            projected: t0Stats?.team_projected_points?.total ?? "0.00",
-            winProbability: t0Stats?.win_probability,
+            name: teamAName,
+            logo: teamALogo,
+            score: teamAScore,
+            projected: teamAProj,
+            winProbability: teamAProb,
           },
           teamB: {
-            name: pluckField(t1Meta, "name") || "Unknown",
-            logo: pluckField(t1Meta, "team_logos")?.[0]?.team_logo?.url ?? null,
-            score: t1Stats?.team_points?.total ?? "0.00",
-            projected: t1Stats?.team_projected_points?.total ?? "0.00",
-            winProbability: t1Stats?.win_probability,
+            name: teamBName,
+            logo: teamBLogo,
+            score: teamBScore,
+            projected: teamBProj,
+            winProbability: teamBProb,
           },
         });
       });
 
     return result;
-
   } catch (err) {
     console.error("Error extracting matchups:", err);
     return [];
   }
 }
 
-// -------------------------------------------------------------
-// Render matchups
-// -------------------------------------------------------------
+// ------------------------------------------------
+// Render matchup cards
+// ------------------------------------------------
+
 function renderMatchupCards(matchups) {
   matchupsContainer.innerHTML = "";
 
@@ -142,27 +252,34 @@ function renderMatchupCards(matchups) {
     const card = document.createElement("article");
     card.className = "matchup-card";
 
-    const Aprob = m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
-    const Bprob = m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
+    const teamAProbPct =
+      m.teamA.winProbability != null
+        ? Math.round(m.teamA.winProbability * 100)
+        : null;
+    const teamBProbPct =
+      m.teamB.winProbability != null
+        ? Math.round(m.teamB.winProbability * 100)
+        : null;
 
     card.innerHTML = `
       <div class="matchup-header-row">
-        <span class="matchup-week-label">Week ${m.week}</span>
-        <span class="matchup-tag">Playoffs</span>
+        <span class="matchup-week-label">Week ${m.week ?? "?"}</span>
+        ${m.matchupTag ? `<span class="matchup-tag">${m.matchupTag}</span>` : ""}
       </div>
 
       <div class="matchup-body">
         <div class="team-column">
           <div class="team-info">
-            ${m.teamA.logo
-              ? `<img src="${m.teamA.logo}" class="team-logo">`
-              : `<div class="team-logo placeholder-logo">A</div>`
+            ${
+              m.teamA.logo
+                ? `<img src="${m.teamA.logo}" class="team-logo"/>`
+                : `<div class="team-logo placeholder-logo">A</div>`
             }
             <div>
               <div class="team-name">${m.teamA.name}</div>
               <div class="team-metadata">
                 Proj: ${m.teamA.projected}
-                ${Aprob != null ? `· Win% ${Aprob}%` : ""}
+                ${teamAProbPct != null ? ` · Win%: ${teamAProbPct}%` : ""}
               </div>
             </div>
           </div>
@@ -177,12 +294,13 @@ function renderMatchupCards(matchups) {
               <div class="team-name">${m.teamB.name}</div>
               <div class="team-metadata">
                 Proj: ${m.teamB.projected}
-                ${Bprob != null ? `· Win% ${Bprob}%` : ""}
+                ${teamBProbPct != null ? ` · Win%: ${teamBProbPct}%` : ""}
               </div>
             </div>
-            ${m.teamB.logo
-              ? `<img src="${m.teamB.logo}" class="team-logo">`
-              : `<div class="team-logo placeholder-logo">B</div>`
+            ${
+              m.teamB.logo
+                ? `<img src="${m.teamB.logo}" class="team-logo"/>`
+                : `<div class="team-logo placeholder-logo">B</div>`
             }
           </div>
           <div class="team-score">${m.teamB.score}</div>
@@ -194,61 +312,35 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// -------------------------------------------------------------
-// Button Handlers
-// -------------------------------------------------------------
+// ------------------------------------------------
+// Change week
+// ------------------------------------------------
 
-authBtn?.addEventListener("click", () => {
-  window.location.href = `${backendBase}/auth/start`;
-});
+if (weekSelect) {
+  weekSelect.addEventListener("change", async () => {
+    const newWeek = parseInt(weekSelect.value);
+    const data = await loadScoreboardForWeek(newWeek);
 
-loadJsonBtn?.addEventListener("click", async () => {
-  const data = await loadScoreboardForWeek(selectedWeek ?? 1);
-  if (!data) return;
+    if (data) {
+      const matchups = extractMatchups(data);
+      renderMatchupCards(matchups);
+      setStatus(`Loaded matchups for Week ${newWeek}`);
+    }
+  });
+}
 
-  jsonOutput.textContent = JSON.stringify(data, null, 2);
+// ------------------------------------------------
+// Auto-load on page load
+// ------------------------------------------------
 
-  const leagueMeta = data?.fantasy_content?.league?.[0];
-  populateWeekDropdown(leagueMeta);
-
-  weekLabel.textContent = `Week ${selectedWeek}`;
-  setStatus("JSON Loaded.");
-});
-
-loadMatchupsBtn?.addEventListener("click", () => {
-  if (!scoreboardData)
-    return setStatus("Load JSON first.");
-
-  const matchups = extractMatchups(scoreboardData);
-  renderMatchupCards(matchups);
-
-  weekLabel.textContent = `Week ${selectedWeek}`;
-});
-
-weekSelect?.addEventListener("change", async () => {
-  selectedWeek = parseInt(weekSelect.value);
-  setStatus(`Week changed to ${selectedWeek}`);
-
-  const data = await loadScoreboardForWeek(selectedWeek);
-  if (!data) return;
-
-  const matchups = extractMatchups(data);
-  renderMatchupCards(matchups);
-
-  weekLabel.textContent = `Week ${selectedWeek}`;
-});
-
-// -------------------------------------------------------------
-// Safe Auto-load (runs AFTER sign-in)
-// -------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     const data = await loadScoreboardForWeek(selectedWeek ?? 1);
     if (!data) return;
 
-    const leagueMeta = data?.fantasy_content?.league?.[0];
+    const leagueArr = data?.fantasy_content?.league;
+    const leagueMeta = leagueArr?.[0];
 
-    // Populate dropdown only once
     if (leagueMeta && weekSelect.innerHTML.trim() === "") {
       populateWeekDropdown(leagueMeta);
     }
@@ -258,10 +350,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     const matchups = extractMatchups(data);
     if (matchups.length > 0) {
       renderMatchupCards(matchups);
-      setStatus(`Loaded matchups for Week ${selectedWeek}`);
+      setStatus(`Loaded ${matchups.length} matchups.`);
     }
-
   } catch {
-    console.warn("Auto-load skipped (not authenticated yet).");
+    console.warn("Auto-load skipped (likely not authenticated yet).");
   }
 });
