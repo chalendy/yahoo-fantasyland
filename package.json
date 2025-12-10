@@ -1,16 +1,14 @@
 {
   "name": "yh-fantasyland",
   "version": "1.0.0",
-  "type": "module",
+  "description": "Yahoo Fantasy Football viewer",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "dotenv": "^16.0.3"
-  },
-  "engines": {
-    "node": "18.x"
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2"
   }
 }
