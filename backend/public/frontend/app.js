@@ -1,35 +1,32 @@
-// Replace this with your backend URL on Render
 const backend = "https://yh-fantasyland.onrender.com";
 
-// Replace this with your actual league key from Yahoo Fantasy
-const leagueKey = "nfl.l.38076"; // Example: "nfl.l.123456"
-
-// Buttons
 const authBtn = document.getElementById("authBtn");
 const loadBtn = document.getElementById("loadBtn");
 const output = document.getElementById("output");
 
-// Start Yahoo OAuth
+// Sign in with Yahoo
 authBtn.onclick = () => {
   window.location.href = `${backend}/auth/start`;
 };
 
-// Load league scoreboard
+// Load scoreboard for your league
 loadBtn.onclick = async () => {
+  output.textContent = "Loading scoreboard...";
+
   try {
-    const res = await fetch(`${backend}/league/${leagueKey}/scoreboard`);
+    const res = await fetch(`${backend}/scoreboard`);
     if (!res.ok) {
-      if (res.status === 401) {
-        output.textContent = "Not authenticated. Please sign in with Yahoo first.";
-        return;
-      }
-      throw new Error("Network response was not ok");
+      const errText = await res.text();
+      console.error("Scoreboard error:", res.status, errText);
+      output.textContent = `Error fetching scoreboard: ${res.status}`;
+      return;
     }
 
     const data = await res.json();
+    console.log("Scoreboard data:", data);
     output.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
-    console.error(err);
+    console.error("Fetch error:", err);
     output.textContent = "Error fetching scoreboard. See console for details.";
   }
 };
