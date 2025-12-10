@@ -1,6 +1,7 @@
 // If frontend is served from the same origin as backend, we can use relative URLs
 const backendBase = ""; // same origin
 
+// UI elements
 const authBtn = document.getElementById("authBtn");
 const loadJsonBtn = document.getElementById("loadJsonBtn");
 const loadMatchupsBtn = document.getElementById("loadMatchupsBtn");
@@ -13,6 +14,7 @@ let scoreboardData = null;
 
 // ------------- Helpers -------------
 
+// Helper to update status text
 function setStatus(msg) {
   if (statusMessage) statusMessage.textContent = msg;
 }
@@ -263,7 +265,7 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// Auto-load scoreboard JSON on page load
+// Auto-load scoreboard JSON as soon as page loads
 window.addEventListener("DOMContentLoaded", () => {
   if (loadJsonBtn) loadJsonBtn.click();
 });
