@@ -37,8 +37,17 @@
         <section class="matchups-panel">
           <div class="panel-header">
             <h2>This Week's Matchups</h2>
-            <span id="weekLabel" class="week-label"></span>
-          </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="weekSelect" style="font-size:0.8rem; color:var(--text-muted);">
+                  Week:
+              </label>
+          <select id="weekSelect" class="week-dropdown"></select>
+
+      <span id="weekLabel" class="week-label"></span>
+      </div>
+      </div>
+
           <div id="matchupsContainer" class="matchups-grid">
             <!-- Matchup cards get injected here -->
           </div>
