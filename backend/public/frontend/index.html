@@ -2,39 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>YH Fantasyland</title>
+  <title>YH Fantasy Land</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
-    <h1>YH Fantasyland</h1>
-    <p class="subtitle">Yahoo Fantasy Football League 38076</p>
+    <div class="header-inner">
+      <h1 class="app-title">YH Fantasy Land</h1>
+      <button id="authBtn" class="btn btn-primary">Sign in with Yahoo</button>
+    </div>
   </header>
 
-  <main class="layout">
+  <main class="main">
     <section class="controls">
-      <button id="authBtn">Sign in with Yahoo</button>
-      <button id="loadScoreboardBtn">Show Raw Scoreboard JSON</button>
-      <button id="loadMatchupsBtn">Load This Week's Matchups</button>
+      <button id="loadBtn" class="btn">Load Scoreboard JSON</button>
+      <button id="loadMatchupsBtn" class="btn btn-outline">Load This Week&#39;s Matchups</button>
     </section>
 
-    <section class="content">
-      <div class="panel">
-        <h2>Matchups This Week</h2>
-        <p id="weekLabel" class="week-label"></p>
-        <div id="matchupsContainer" class="matchups"></div>
-      </div>
+    <section class="content-grid">
+      <!-- Left: Matchups -->
+      <section class="card">
+        <h2>Week Matchups</h2>
+        <div id="matchupsContainer" class="matchups-container">
+          <!-- Matchup cards will be injected here by app.js -->
+        </div>
+      </section>
 
-      <div class="panel">
+      <!-- Right: Raw JSON / Debug -->
+      <section class="card">
         <h2>Raw Scoreboard JSON</h2>
-        <pre id="jsonOutput" class="json-output"></pre>
-      </div>
+        <pre id="output" class="json-output">
+          <!-- JSON debug output from app.js -->
+        </pre>
+      </section>
     </section>
   </main>
 
   <footer class="footer">
-    <small>Powered by Yahoo Fantasy Sports</small>
+    <p>Powered by Yahoo Fantasy Sports API</p>
   </footer>
 
   <script src="app.js"></script>
