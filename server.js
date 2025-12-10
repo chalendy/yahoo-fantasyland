@@ -125,7 +125,7 @@ app.get("/scoreboard", async (req, res) => {
 // -----------------------------
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 
-app.use(express.static(frontendPath));
+app.use(express.static(path.join(__dirname, "backend/public")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
