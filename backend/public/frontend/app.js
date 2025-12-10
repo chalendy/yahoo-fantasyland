@@ -265,8 +265,63 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// Auto-load scoreboard JSON as soon as page loads
-window.addEventListener("DOMContentLoaded", () => {
-  if (loadJsonBtn) loadJsonBtn.click();
-});
+// ----- AUTO LOAD SCOREBOARD + MATCHUPS -----
+
+async function autoLoadEverything() {
+  try {
+    setStatus("Loading scoreboard...");
+
+    const res = await fetch(`${backendBase}/scoreboard`);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Scoreboard error:", res.status, text);
+      setStatus("Failed to load scoreboard.");
+      return;
+    }
+
+    // Save JSON so renderMatchupsBtn still works
+    const data = await res.json();
+    scoreboardData = data;
+
+    // Show the JSON in the debug panel
+    if (jsonOutput) {
+      jsonOutput.textContent = JSON.stringify(data, null, 2);
+    }
+
+    // Extract week and show it
+    try {
+      const leagueArr = data?.fantasy_content?.league;
+      const leagueMeta = leagueArr?.[0];
+      const scoreboard = leagueArr?.[1]?.scoreboard;
+
+      const week = scoreboard?.week ?? leagueMeta?.current_week;
+      if (weekLabel && week != null) {
+        weekLabel.textContent = `Week ${week}`;
+      }
+    } catch (e) {
+      console.warn("Couldn't read week label:", e);
+    }
+
+    // Extract matchups
+    const matchups = extractMatchups(data);
+
+    if (!matchups || matchups.length === 0) {
+      setStatus("No matchups found for this week.");
+      matchupsContainer.innerHTML = "";
+      return;
+    }
+
+    // Render matchup cards
+    renderMatchupCards(matchups);
+    setStatus(`Loaded ${matchups.length} matchups.`);
+
+  } catch (err) {
+    console.error("Auto load error:", err);
+    setStatus("Error auto-loading scoreboard.");
+  }
+}
+
+// Auto-start everything once the page finishes loading
+window.addEventListener("DOMContentLoaded", autoLoadEverything);
+
 
