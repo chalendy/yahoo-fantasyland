@@ -1,165 +1,219 @@
-/* ------------------------------
-   Global Layout / Theme
---------------------------------*/
+:root {
+  --bg: #050816;
+  --bg-panel: #101828;
+  --accent: #f97316;
+  --accent-soft: rgba(249, 115, 22, 0.16);
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --border-subtle: #1f2937;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --shadow-soft: 0 22px 45px rgba(15, 23, 42, 0.75);
+  --gap: 1rem;
+}
+
 * {
   box-sizing: border-box;
-  font-family: "Inter", Arial, sans-serif;
 }
 
 body {
   margin: 0;
-  padding: 20px;
-  background: #0d1117; /* deep dark */
-  color: #e6edf3;      /* light text */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #111827, #020617 60%);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header */
-h1 {
+
+.header {
+  padding: 1.5rem 1.25rem 0.75rem;
   text-align: center;
-  margin-bottom: 10px;
-  font-size: 2rem;
-  color: #58a6ff;
 }
 
-h2, h3 {
-  color: #79c0ff;
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-/* ------------------------------
-   Buttons
---------------------------------*/
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+}
+
+/* Layout */
+
+.layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 1.25rem 1.25rem;
+  gap: var(--gap);
+}
+
+/* Controls */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
 button {
-  padding: 10px 18px;
   border: none;
-  border-radius: 6px;
-  background: #238636;
-  color: white;
-  font-size: 1rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  background: var(--accent-soft);
+  color: var(--accent);
   cursor: pointer;
-  margin-right: 10px;
-  margin-bottom: 10px;
-  transition: background 0.2s ease;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 15px rgba(15, 23, 42, 0.5);
 }
 
 button:hover {
-  background: #2ea043;
+  background: rgba(249, 115, 22, 0.26);
+  transform: translateY(-1px);
 }
 
 button:active {
-  background: #196c2e;
+  transform: translateY(1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.7);
 }
 
-/* ------------------------------
-   Raw JSON Output
---------------------------------*/
-#output {
-  padding: 10px;
-  margin-top: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  white-space: pre-wrap;
-  max-height: 300px;
-  overflow: auto;
+/* Content */
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.1fr);
+  gap: var(--gap);
+  margin-top: 0.5rem;
 }
 
-/* ------------------------------
-   Matchups Container
---------------------------------*/
-#matchups {
-  margin-top: 25px;
+.panel {
+  background: linear-gradient(145deg, #020617, #020617 40%, #020617 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(26px);
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.week-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Matchups */
+
+.matchups {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 0.75rem;
 }
 
-/* Each scoreboard card */
 .matchup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: radial-gradient(circle at top left, #111827, #020617 60%);
+}
+
+.matchup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #161b22; /* dark card background */
-  padding: 16px 20px;
-  border-radius: 10px;
-  border: 1px solid rgba(240, 246, 252, 0.1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
-  gap: 12px;
+  margin-bottom: 0.25rem;
 }
 
-/* ------------------------------
-   Team Sections
---------------------------------*/
-.team {
+.matchup-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+}
+
+.matchup-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.team-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 140px;
-}
-
-.team-b {
-  align-items: flex-end;
-}
-
-.team-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  margin-bottom: 6px;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 .team-name {
   font-weight: 600;
-  font-size: 1.05rem;
-  color: #e6edf3;
+  font-size: 0.95rem;
 }
 
-.team-manager {
-  font-size: 0.85rem;
-  opacity: 0.7;
-  margin-top: 2px;
-}
-
-/* Points + Projections */
 .team-points {
-  margin-top: 6px;
-  font-weight: 600;
-  font-size: 1.1rem;
+  text-align: right;
 }
 
-.team-points .proj {
-  font-weight: 400;
-  font-size: 0.85rem;
-  opacity: 0.7;
-  margin-left: 6px;
-}
-
-/* ------------------------------
-   "vs" Separator
---------------------------------*/
-.vs {
-  font-size: 1.3rem;
+.team-score {
+  font-size: 1rem;
   font-weight: 700;
-  color: #8b949e;
-  padding: 0 10px;
 }
 
-/* ------------------------------
-   Responsive (Mobile)
---------------------------------*/
-@media (max-width: 600px) {
-  .matchup-card {
-    flex-direction: column;
-    text-align: center;
+.team-proj {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* JSON output */
+
+.json-output {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  max-height: 360px;
+  overflow: auto;
+  background: #020617;
+  border-radius: 10px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Footer */
+
+.footer {
+  text-align: center;
+  padding: 0.75rem 1rem 1.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Responsive */
+
+@media (max-width: 800px) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .team,
-  .team-b {
-    align-items: center !important;
-  }
-
-  .vs {
-    margin: 10px 0;
+  .panel {
+    padding: 0.85rem;
   }
 }
