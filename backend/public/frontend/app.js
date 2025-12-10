@@ -1,186 +1,182 @@
-const backend = "https://yh-fantasyland.onrender.com";
+// Point to your backend (same origin on Render)
+const backend = "";
 
+// Grab elements
 const authBtn = document.getElementById("authBtn");
-const loadScoreboardBtn = document.getElementById("loadScoreboardBtn");
 const loadMatchupsBtn = document.getElementById("loadMatchupsBtn");
-const output = document.getElementById("output");
-const matchupsContainer = document.getElementById("matchups");
+const loadScoreboardBtn = document.getElementById("loadScoreboardBtn");
+const matchupsDiv = document.getElementById("matchups");
+const outputPre = document.getElementById("output");
 
-// --- Sign in with Yahoo ---
+// ---- Button handlers ----
+
+// Sign in with Yahoo
 authBtn.addEventListener("click", () => {
-  window.location.href = `${backend}/auth/start`;
+  window.location.href = "/auth/start";
 });
 
-// --- Load raw scoreboard JSON (for debugging) ---
+// Load raw JSON (for debugging)
 loadScoreboardBtn.addEventListener("click", async () => {
-  output.textContent = "Loading scoreboard JSON...";
-  matchupsContainer.innerHTML = "";
+  outputPre.textContent = "Loading scoreboard JSON...";
 
   try {
-    const res = await fetch(`${backend}/scoreboard`);
-    const text = await res.text();
-
-    // Try to parse, but also show raw if it fails
-    try {
-      const data = JSON.parse(text);
-      console.log("Scoreboard JSON:", data);
-      output.textContent = JSON.stringify(data, null, 2);
-    } catch (e) {
-      console.error("Failed to parse JSON, raw text:", text);
-      output.textContent = text;
-    }
-  } catch (err) {
-    console.error("Error fetching scoreboard:", err);
-    output.textContent = "Error fetching scoreboard. See console for details.";
-  }
-});
-
-// --- Load matchups for the current week ---
-loadMatchupsBtn.addEventListener("click", async () => {
-  output.textContent = "";
-  matchupsContainer.innerHTML = "Loading matchups...";
-
-  try {
-    const res = await fetch(`${backend}/scoreboard`);
+    const res = await fetch("/scoreboard");
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("Scoreboard error:", res.status, errText);
-      matchupsContainer.innerHTML = `Error: ${res.status}`;
+      const text = await res.text();
+      console.error("Scoreboard error:", res.status, text);
+      outputPre.textContent = `Error: ${res.status}\n${text}`;
       return;
     }
 
     const data = await res.json();
-    console.log("Scoreboard JSON for matchups:", data);
-
-    const matchups = extractMatchupsFromScoreboard(data);
-
-    if (!matchups.length) {
-      matchupsContainer.innerHTML = "<p>No matchups found in scoreboard data.</p>";
-      return;
-    }
-
-    renderMatchups(matchups);
+    outputPre.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
-    console.error("Error loading matchups:", err);
-    matchupsContainer.innerHTML = "Error loading matchups. See console for details.";
+    console.error(err);
+    outputPre.textContent = "Error fetching scoreboard. See console for details.";
   }
 });
 
-// --- Parse matchups from Yahoo scoreboard JSON ---
-function extractMatchupsFromScoreboard(scoreboardJson) {
-  const results = [];
+// Load this week's matchups (pretty UI)
+loadMatchupsBtn.addEventListener("click", async () => {
+  matchupsDiv.innerHTML = "Loading matchups...";
+  outputPre.textContent = "";
 
-  if (!scoreboardJson || !scoreboardJson.fantasy_content) {
-    console.warn("No fantasy_content in JSON");
-    return results;
-  }
-
-  const fantasy = scoreboardJson.fantasy_content;
-  const leagueArr = fantasy.league;
-
-  if (!Array.isArray(leagueArr)) {
-    console.warn("league is not an array", leagueArr);
-    return results;
-  }
-
-  // leagueArr looks like: [ {meta}, {scoreboard: {...}}, "count" ]
-  const scoreboardEntry = leagueArr.find((item) => item && item.scoreboard);
-  if (!scoreboardEntry) {
-    console.warn("No scoreboard entry in league[]");
-    return results;
-  }
-
-  const scoreboard = scoreboardEntry.scoreboard;
-
-  // Typical structure: scoreboard["0"] = { matchups: {...}, week: ..., ... }
-  const scoreboard0 = scoreboard["0"] || scoreboard[0];
-  if (!scoreboard0 || !scoreboard0.matchups) {
-    console.warn("No matchups object in scoreboard[0]", scoreboard0);
-    return results;
-  }
-
-  const matchupsObj = scoreboard0.matchups;
-  const matchupCount = parseInt(matchupsObj.count, 10) || 0;
-
-  for (let i = 0; i < matchupCount; i++) {
-    const key = String(i);
-    const matchupWrapper = matchupsObj[key];
-    if (!matchupWrapper || !matchupWrapper.matchup) continue;
-
-    const matchup = matchupWrapper.matchup;
-    const teamsObj = matchup.teams;
-    const teamCount = parseInt(teamsObj.count, 10) || 0;
-
-    const teams = [];
-
-    for (let t = 0; t < teamCount; t++) {
-      const tkey = String(t);
-      const teamWrapper = teamsObj[tkey];
-      if (!teamWrapper || !teamWrapper.team) continue;
-
-      const teamArr = teamWrapper.team;
-      const metaArr = Array.isArray(teamArr[0]) ? teamArr[0] : [];
-      const statsObj = teamArr[1] || {};
-
-      // Find the object with a "name" property in metaArr
-      let teamName = "Unknown Team";
-      for (const item of metaArr) {
-        if (item && typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "name")) {
-          teamName = item.name;
-          break;
-        }
-      }
-
-      const teamPoints = statsObj.team_points?.total ?? "0.00";
-      const projectedPoints = statsObj.team_projected_points?.total ?? "0.00";
-
-      teams.push({
-        name: teamName,
-        points: teamPoints,
-        projected: projectedPoints,
-      });
+  try {
+    const res = await fetch("/scoreboard");
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Scoreboard error:", res.status, text);
+      matchupsDiv.textContent = `Error: ${res.status}`;
+      return;
     }
 
-    if (teams.length === 2) {
-      results.push({
-        home: teams[0],
-        away: teams[1],
+    const data = await res.json();
+    // Also dump to debug so you can inspect structure
+    outputPre.textContent = JSON.stringify(data, null, 2);
+
+    const matchups = extractMatchupsFromYahooScoreboard(data);
+    renderMatchups(matchups);
+  } catch (err) {
+    console.error(err);
+    matchupsDiv.textContent = "Error loading matchups. See console.";
+  }
+});
+
+// ---- Helpers ----
+
+// Tries to walk the Yahoo JSON structure and pull out matchups.
+// You may need to tweak this if Yahoo's JSON shape differs slightly.
+function extractMatchupsFromYahooScoreboard(data) {
+  const matchups = [];
+
+  try {
+    // Typical Yahoo structure:
+    // data.fantasy_content.league[1].scoreboard[0].matchups
+    const fantasyContent = data.fantasy_content;
+    if (!fantasyContent) return [];
+
+    const leagueArr = fantasyContent.league;
+    if (!Array.isArray(leagueArr)) return [];
+
+    const scoreboardWrapper = leagueArr.find((item) => item && item.scoreboard);
+    if (!scoreboardWrapper) return [];
+
+    const scoreboard = scoreboardWrapper.scoreboard[0]; // first scoreboard object
+    const matchupsObj = scoreboard.matchups;
+    if (!matchupsObj) return [];
+
+    Object.keys(matchupsObj)
+      .filter((k) => k !== "count")
+      .forEach((mk) => {
+        const matchupWrapper = matchupsObj[mk];
+        if (!matchupWrapper || !matchupWrapper.matchup) return;
+
+        const matchup = matchupWrapper.matchup;
+        const teamsObj = matchup.teams;
+        if (!teamsObj) return;
+
+        const teamEntries = Object.keys(teamsObj)
+          .filter((k) => k !== "count")
+          .map((k) => teamsObj[k].team);
+
+        if (teamEntries.length !== 2) return;
+
+        const [team1Arr, team1Info] = teamEntries[0];
+        const [team2Arr, team2Info] = teamEntries[1];
+
+        const name1 =
+          (team1Arr.find((o) => o && o.name) || {}).name || "Unknown Team";
+        const name2 =
+          (team2Arr.find((o) => o && o.name) || {}).name || "Unknown Team";
+
+        const score1 =
+          team1Info?.team_points?.total ??
+          team1Info?.team_points?.value ??
+          "0.00";
+        const score2 =
+          team2Info?.team_points?.total ??
+          team2Info?.team_points?.value ??
+          "0.00";
+
+        const proj1 =
+          team1Info?.team_projected_points?.total ??
+          team1Info?.team_projected_points?.value ??
+          null;
+        const proj2 =
+          team2Info?.team_projected_points?.total ??
+          team2Info?.team_projected_points?.value ??
+          null;
+
+        matchups.push({
+          name1,
+          score1,
+          proj1,
+          name2,
+          score2,
+          proj2,
+        });
       });
-    }
+  } catch (err) {
+    console.error("Error extracting matchups:", err);
   }
 
-  return results;
+  return matchups;
 }
 
-// --- Render matchups into the DOM ---
 function renderMatchups(matchups) {
-  matchupsContainer.innerHTML = "";
+  if (!matchups.length) {
+    matchupsDiv.innerHTML = "<p>No matchups found for this week.</p>";
+    return;
+  }
 
-  matchups.forEach((m, idx) => {
+  matchupsDiv.innerHTML = "";
+
+  matchups.forEach((m) => {
     const card = document.createElement("div");
     card.className = "matchup-card";
 
     card.innerHTML = `
-      <div class="matchup-header">Matchup ${idx + 1}</div>
-      <div class="matchup-body">
-        <div class="team">
-          <div class="team-name">${m.home.name}</div>
-          <div class="team-points">
-            <span class="actual">${m.home.points}</span>
-            <span class="projected">(${m.home.projected})</span>
-          </div>
-        </div>
-        <div class="vs">vs</div>
-        <div class="team">
-          <div class="team-name">${m.away.name}</div>
-          <div class="team-points">
-            <span class="actual">${m.away.points}</span>
-            <span class="projected">(${m.away.projected})</span>
-          </div>
-        </div>
+      <div class="team">
+        <div class="team-name">${m.name1}</div>
+        <div class="team-score">${m.score1}</div>
+        ${
+          m.proj1
+            ? `<div class="team-proj">Proj: ${m.proj1}</div>`
+            : ""
+        }
+      </div>
+      <div class="vs">vs</div>
+      <div class="team">
+        <div class="team-name">${m.name2}</div>
+        <div class="team-score">${m.score2}</div>
+        ${
+          m.proj2
+            ? `<div class="team-proj">Proj: ${m.proj2}</div>`
+            : ""
+        }
       </div>
     `;
 
-    matchupsContainer.appendChild(card);
+    matchupsDiv.appendChild(card);
   });
 }
