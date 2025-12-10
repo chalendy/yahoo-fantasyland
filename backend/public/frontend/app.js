@@ -291,3 +291,4 @@ weekSelect.addEventListener("change", () => {
 document.addEventListener("DOMContentLoaded", () => {
   loadScoreboard();
 });
+
