@@ -1,197 +1,5 @@
 /* ============================================
-   GLOBAL THEME (old purple glossy look)
-============================================ */
-
-:root {
-  --bg: #060714;
-  --bg-elevated: #101322;
-  --bg-soft: #15182a;
-
-  --text: #f5f5f7;
-  --text-muted: #a1a5c1;
-
-  --accent: #7f5af0;
-  --accent-light: rgba(127, 90, 240, 0.18);
-  --accent-strong: #ff8e3c;
-  --accent-soft: rgba(255, 142, 60, 0.12);
-
-  --radius-lg: 22px;
-  --radius-md: 16px;
-
-  --border-subtle: rgba(255,255,255,0.08);
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%, #040510 100%);
-  color: var(--text);
-}
-
-.page-wrapper {
-  max-width: 1300px;
-  margin: 0 auto;
-  padding: 20px 20px 50px;
-}
-
-/* ============================================
-   HEADER (restored layout)
-============================================ */
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 6px 10px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.title {
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.subtitle {
-  margin: 2px 0 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-#weekSelect {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated);
-  color: var(--text);
-}
-
-/* ============================================
-   BUTTONS
-============================================ */
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), #c34eff);
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
-}
-
-.btn-secondary {
-  padding: 8px 14px;
-  background: var(--bg-soft);
-  color: var(--text);
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-accent {
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--accent-strong);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-
-/* ============================================
-   CONTROLS CARD (restored)
-============================================ */
-
-.controls-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 20px 26px;
-  border: 1px solid var(--border-subtle);
-  margin-top: 14px;
-  box-shadow: 0 14px 35px rgba(0,0,0,0.35);
-}
-
-.controls-card h2 {
-  margin-top: 0;
-  font-size: 1.1rem;
-}
-
-.helptext {
-  margin: 6px 0 16px;
-  color: var(--text-muted);
-}
-
-.control-btn-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.status-message {
-  margin-top: 4px;
-  color: var(--accent-strong);
-}
-
-/* ============================================
-   MAIN GRID (old layout restored)
-============================================ */
-
-.main-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
-  gap: 24px;
-  margin-top: 22px;
-}
-
-@media (max-width: 900px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============================================
-   MATCHUPS PANEL
-============================================ */
-
-.matchups-panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 24px 26px;
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.panel-header h2 {
-  font-size: 1.3rem;
-  margin: 0;
-}
-
-.badge {
-  background: var(--accent-soft);
-  padding: 4px 10px;
-  border-radius: 999px;
-  color: var(--accent-strong);
-  border: 1px solid rgba(255,142,60,0.4);
-}
-
-.matchups-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-top: 18px;
-}
-
-/* ============================================
-   MATCHUP CARDS (restored sizing + spacing)
+   EXACT OLD MATCHUP CARD LAYOUT
 ============================================ */
 
 .matchup-card {
@@ -199,31 +7,49 @@ body {
               radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
               var(--bg-soft);
 
-  border-radius: var(--radius-md);
+  border-radius: 16px; /* slightly tighter than new */
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.35);
-
-  padding: 16px 22px;
+  padding: 14px 18px; /* smaller padding like old */
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  gap: 14px;
 }
 
-/* team columns */
+/* WEEK LABEL (top-left corner) */
 
-.team-column__top {
+.matchup-card .week-label {
+  font-size: 0.75rem;
+  background: rgba(255,255,255,0.06);
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.12);
+  margin-bottom: 8px;
+}
+
+/* LEFT + RIGHT TEAM COLUMNS */
+
+.matchup-card .team-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .team-logo {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.25);
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
 }
 
 .team-name {
@@ -231,65 +57,45 @@ body {
   font-weight: 600;
 }
 
-.team-proj,
-.team-winprob {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
 .team-score {
+  margin-top: 4px;
   font-size: 1.4rem;
-  margin-top: 6px;
   font-weight: 700;
 }
 
-.matchup-card__center {
+.team-proj {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.team-winprob {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* VS COLUMN (center) */
+
+.matchup-center {
+  min-width: 70px;
+  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  gap: 6px;
 }
 
-.matchup-card__week {
+.matchup-center .vs-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* PLAYOFFS LABEL */
+
+.playoff-pill {
   background: rgba(255,255,255,0.05);
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.12);
-  font-size: 0.82rem;
-}
-
-/* ============================================
-   JSON PANEL (restored)
-============================================ */
-
-.json-panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  padding: 22px 24px;
-  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
-}
-
-.json-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.debug-pill {
-  background: rgba(255,255,255,0.06);
   padding: 4px 10px;
   border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
   font-size: 0.75rem;
-}
-
-.json-output {
-  background: #050710;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  margin-top: 12px;
-  max-height: 600px;
-  overflow-y: auto;
-  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-left: 12px;
 }
