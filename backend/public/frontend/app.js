@@ -62,8 +62,10 @@ function populateWeekDropdown(leagueMeta) {
     weekSelect.appendChild(opt);
   }
 
-  selectedWeek = parseInt(leagueMeta.current_week);
-  weekSelect.value = selectedWeek;
+  // Set dropdown to current/selected week
+  if (selectedWeek) {
+    weekSelect.value = selectedWeek;
+  }
 }
 
 // ------------------------------------------------
@@ -97,9 +99,12 @@ if (loadJsonBtn) {
         const scoreboard = leagueArr[1]?.scoreboard;
 
         const week = scoreboard?.week ?? leagueMeta?.current_week;
+        selectedWeek = week;
+
         if (weekLabel) weekLabel.textContent = `Week ${week}`;
 
         populateWeekDropdown(leagueMeta);
+        weekSelect.value = selectedWeek;
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -139,10 +144,6 @@ async function loadScoreboardForWeek(week) {
 
     const realWeek = scoreboard?.week ?? leagueMeta?.current_week;
     if (weekLabel) weekLabel.textContent = `Week ${realWeek}`;
-
-    if (weekSelect && weekSelect.innerHTML.trim() === "") {
-      populateWeekDropdown(leagueMeta);
-    }
 
     return data;
   } catch (err) {
@@ -210,7 +211,8 @@ function extractMatchups(data) {
         const isPlayoffs = matchup.is_playoffs === "1";
         const isConsolation = matchup.is_consolation === "1";
 
-        let matchupTag = null; // hide tag for regular season
+        // Hide tag for regular season
+        let matchupTag = null;
         if (isPlayoffs) matchupTag = "Playoffs";
         else if (isConsolation) matchupTag = "Consolation";
 
@@ -319,8 +321,9 @@ function renderMatchupCards(matchups) {
 if (weekSelect) {
   weekSelect.addEventListener("change", async () => {
     const newWeek = parseInt(weekSelect.value);
-    const data = await loadScoreboardForWeek(newWeek);
+    selectedWeek = newWeek;
 
+    const data = await loadScoreboardForWeek(newWeek);
     if (data) {
       const matchups = extractMatchups(data);
       renderMatchupCards(matchups);
@@ -330,29 +333,44 @@ if (weekSelect) {
 }
 
 // ------------------------------------------------
-// Auto-load on page load
+// Auto-load current week on page load
 // ------------------------------------------------
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
-    const data = await loadScoreboardForWeek(selectedWeek ?? 1);
-    if (!data) return;
+    // STEP 1 — Fetch current week scoreboard (no week param)
+    setStatus("Loading current week...");
+    const res = await fetch(`${backendBase}/scoreboard`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    scoreboardData = data;
 
     const leagueArr = data?.fantasy_content?.league;
     const leagueMeta = leagueArr?.[0];
+    const scoreboard = leagueArr?.[1]?.scoreboard;
 
-    if (leagueMeta && weekSelect.innerHTML.trim() === "") {
-      populateWeekDropdown(leagueMeta);
-    }
+    // STEP 2 — Determine current week
+    selectedWeek = scoreboard?.week ?? leagueMeta?.current_week;
 
-    weekLabel.textContent = `Week ${selectedWeek}`;
+    // Build dropdown before loading matchups
+    populateWeekDropdown(leagueMeta);
 
-    const matchups = extractMatchups(data);
+    // Select correct week
+    if (weekLabel) weekLabel.textContent = `Week ${selectedWeek}`;
+    if (weekSelect) weekSelect.value = selectedWeek;
+
+    // STEP 3 — Load matchups from correct week
+    const properWeekData = await loadScoreboardForWeek(selectedWeek);
+    if (!properWeekData) return;
+
+    const matchups = extractMatchups(properWeekData);
+
     if (matchups.length > 0) {
       renderMatchupCards(matchups);
       setStatus(`Loaded ${matchups.length} matchups.`);
     }
-  } catch {
+  } catch (err) {
     console.warn("Auto-load skipped (likely not authenticated yet).");
   }
 });
