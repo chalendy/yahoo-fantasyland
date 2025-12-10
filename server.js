@@ -1,122 +1,106 @@
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
 const app = express();
+app.use(cookieParser());
+
 const PORT = process.env.PORT || 3000;
 
-// Fix __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// -----------------------------
+//  CONFIG
+// -----------------------------
+const CLIENT_ID = process.env.YH_CLIENT_ID;
+const CLIENT_SECRET = process.env.YH_CLIENT_SECRET;
 
-// Frontend path
-const frontendPath = path.join(__dirname, "backend", "public", "frontend");
+const REDIRECT_URI =
+  process.env.YH_REDIRECT_URI || "https://yh-fantasyland.onrender.com/auth/callback";
 
-// Env variables
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+const FRONTEND_SUCCESS =
+  process.env.FRONTEND_SUCCESS || "https://yh-fantasyland.onrender.com/success";
 
-// Store tokens in memory (you can switch to DB later)
-let oauthTokens = null;
+const FRONTEND_ERROR =
+  process.env.FRONTEND_ERROR || "https://yh-fantasyland.onrender.com/error";
 
 // -----------------------------
-// Start Yahoo OAuth Login
+//  ROUTES
 // -----------------------------
+
+// Start Yahoo OAuth
 app.get("/auth/start", (req, res) => {
-  const yahooOAuthURL =
-    `https://api.login.yahoo.com/oauth2/request_auth?client_id=${CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&response_type=code&scope=fspt-w`;
+  const state = Math.random().toString(36).substring(7);
+  res.cookie("oauth_state", state, { httpOnly: true });
 
-  res.redirect(yahooOAuthURL);
+  const url =
+    `https://api.login.yahoo.com/oauth2/request_auth?` +
+    `client_id=${CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&language=en-us` +
+    `&state=${state}`;
+
+  console.log("Redirecting to Yahoo OAuth:", url);
+  res.redirect(url);
 });
 
-// -----------------------------
-// OAuth Callback (Yahoo → You)
-// -----------------------------
+// Yahoo redirects here after login
 app.get("/auth/callback", async (req, res) => {
+  const { code, state } = req.query;
+  const storedState = req.cookies.oauth_state;
+
+  if (!code) {
+    console.log("❌ Missing authorization code");
+    return res.redirect(FRONTEND_ERROR + "?msg=missing_code");
+  }
+
+  if (state !== storedState) {
+    console.log("❌ Invalid OAuth state");
+    return res.redirect(FRONTEND_ERROR + "?msg=invalid_state");
+  }
+
   try {
-    const { code } = req.query;
-    if (!code) return res.status(400).send("Missing authorization code.");
-
-    const params = new URLSearchParams();
-    params.append("grant_type", "authorization_code");
-    params.append("code", code);
-    params.append("redirect_uri", REDIRECT_URI);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
+    // Exchange code for token
+    const tokenRes = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
       method: "POST",
       headers: {
+        Authorization:
+          "Basic " +
+          Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization":
-          "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
       },
-      body: params.toString(),
+      body:
+        `grant_type=authorization_code&code=${code}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`,
     });
 
-    const tokenData = await tokenResponse.json();
-    oauthTokens = tokenData;
+    const tokenData = await tokenRes.json();
+    console.log("Yahoo token response:", tokenData);
 
-    if (tokenData.error) {
-      console.error("Yahoo OAuth Error:", tokenData);
-      return res.status(500).send("Failed to obtain access token.");
+    if (!tokenData.access_token) {
+      return res.redirect(FRONTEND_ERROR + "?msg=token_error");
     }
 
-    res.send(`
-      <h2>Yahoo Login Successful!</h2>
-      <p>You can close this tab and return to the app.</p>
-    `);
+    // Pass tokens to frontend
+    res.redirect(
+      `${FRONTEND_SUCCESS}?access=${tokenData.access_token}&refresh=${tokenData.refresh_token}`
+    );
   } catch (err) {
     console.error("Callback error:", err);
-    res.status(500).send("OAuth callback failed.");
+    res.redirect(FRONTEND_ERROR + "?msg=server_error");
   }
 });
 
-// -----------------------------
-// League Scoreboard API
-// -----------------------------
-app.get("/league/:leagueKey/scoreboard", async (req, res) => {
-  if (!oauthTokens) {
-    return res.status(401).send("Not logged in. Please click Sign In.");
-  }
-
-  const { leagueKey } = req.params;
-
-  try {
-    const apiRes = await fetch(
-      `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard?format=json`,
-      {
-        headers: {
-          Authorization: `Bearer ${oauthTokens.access_token}`,
-        },
-      }
-    );
-
-    const data = await apiRes.json();
-    res.json(data);
-  } catch (err) {
-    console.error("Scoreboard API error:", err);
-    res.status(500).send("Unable to fetch scoreboard.");
-  }
+// Root test
+app.get("/", (req, res) => {
+  res.send("Yahoo Fantasy OAuth Server is running ✔");
 });
 
 // -----------------------------
-// Serve Frontend
+//  START SERVER
 // -----------------------------
-app.use(express.static(frontendPath));
-
-// SPA fallback
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-// -----------------------------
-// Start server
-// -----------------------------
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
