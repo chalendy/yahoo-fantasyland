@@ -1,56 +1,165 @@
-body {
-font-family: Arial;
-padding: 20px;
-background: #f2f2f2;
-}
-button {
-padding: 12px;
-margin-right: 10px;
-cursor: pointer;
-}
-#output {
-background: white;
-padding: 20px;
-margin-top: 20px;
-border-radius: 8px;
+/* ------------------------------
+   Global Layout / Theme
+--------------------------------*/
+* {
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
 }
 
-.matchup-list {
+body {
+  margin: 0;
+  padding: 20px;
+  background: #0d1117; /* deep dark */
+  color: #e6edf3;      /* light text */
+}
+
+/* Header */
+h1 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 2rem;
+  color: #58a6ff;
+}
+
+h2, h3 {
+  color: #79c0ff;
+}
+
+/* ------------------------------
+   Buttons
+--------------------------------*/
+button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #238636;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #2ea043;
+}
+
+button:active {
+  background: #196c2e;
+}
+
+/* ------------------------------
+   Raw JSON Output
+--------------------------------*/
+#output {
+  padding: 10px;
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow: auto;
+}
+
+/* ------------------------------
+   Matchups Container
+--------------------------------*/
+#matchups {
+  margin-top: 25px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 18px;
 }
 
+/* Each scoreboard card */
 .matchup-card {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.matchup-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #161b22; /* dark card background */
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  gap: 12px;
 }
 
+/* ------------------------------
+   Team Sections
+--------------------------------*/
 .team {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  align-items: flex-start;
+  min-width: 140px;
+}
+
+.team-b {
+  align-items: flex-end;
+}
+
+.team-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 6px;
 }
 
 .team-name {
   font-weight: 600;
+  font-size: 1.05rem;
+  color: #e6edf3;
 }
 
-.team-score {
-  font-size: 0.9rem;
-  opacity: 0.8;
+.team-manager {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 2px;
 }
 
+/* Points + Projections */
+.team-points {
+  margin-top: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.team-points .proj {
+  font-weight: 400;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-left: 6px;
+}
+
+/* ------------------------------
+   "vs" Separator
+--------------------------------*/
 .vs {
-  margin: 0 1rem;
+  font-size: 1.3rem;
   font-weight: 700;
+  color: #8b949e;
+  padding: 0 10px;
+}
+
+/* ------------------------------
+   Responsive (Mobile)
+--------------------------------*/
+@media (max-width: 600px) {
+  .matchup-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .team,
+  .team-b {
+    align-items: center !important;
+  }
+
+  .vs {
+    margin: 10px 0;
+  }
 }
