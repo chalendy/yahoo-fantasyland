@@ -18,11 +18,11 @@ const CLIENT_SECRET = process.env.YAHOO_CLIENT_SECRET;
 const REDIRECT_URI = "https://yh-fantasyland.onrender.com/auth/callback";
 
 // Your league info
-const LEAGUE_ID = "38076";      // from your URL
-const GAME_KEY = "nfl";         // use game code for current NFL season
+const LEAGUE_ID = "38076";
+const GAME_KEY = "nfl";
 const LEAGUE_KEY = `${GAME_KEY}.l.${LEAGUE_ID}`;
 
-// Store token in memory (simple demo storage)
+// Store token in memory
 let accessToken = null;
 
 // -----------------------------
@@ -49,32 +49,34 @@ app.get("/auth/callback", async (req, res) => {
   }
 
   try {
-    const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method: "POST",
-      headers: {
-        "Authorization":
-          "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        redirect_uri: REDIRECT_URI,
-        code,
-      }),
-    });
+    const tokenResponse = await fetch(
+      "https://api.login.yahoo.com/oauth2/get_token",
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          redirect_uri: REDIRECT_URI,
+          code,
+        }),
+      }
+    );
 
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      console.error("Token error from Yahoo:", tokenData);
+      console.error("Token error:", tokenData);
       return res.status(400).send("Token error: " + JSON.stringify(tokenData));
     }
 
-    // Save token for later API calls
     accessToken = tokenData.access_token;
-    console.log("Got access token from Yahoo");
+    console.log("Authenticated successfully.");
 
-    // Send user back to main app
     res.redirect("/");
   } catch (err) {
     console.error("OAuth callback failure:", err);
@@ -83,7 +85,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD ROUTE
+//  SCOREBOARD ROUTE (NOW SUPPORTS ?week=NUMBER)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
@@ -94,7 +96,6 @@ app.get("/scoreboard", async (req, res) => {
 
   const requestedWeek = req.query.week;
 
-  // Build URL
   let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
 
   if (requestedWeek) {
@@ -115,7 +116,7 @@ app.get("/scoreboard", async (req, res) => {
 
     res.send(text);
   } catch (err) {
-    console.error("Server scoreboard error:", err);
+    console.error("Error fetching scoreboard:", err);
     res.status(500).send("Failed to fetch scoreboard.");
   }
 });
@@ -123,7 +124,12 @@ app.get("/scoreboard", async (req, res) => {
 // -----------------------------
 //  FRONTEND
 // -----------------------------
-const frontendPath = path.join(__dirname, "backend", "public", "frontend");
+const frontendPath = path.join(
+  __dirname,
+  "backend",
+  "public",
+  "frontend"
+);
 
 app.use(express.static(frontendPath));
 
@@ -131,9 +137,6 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// -----------------------------
-//  START SERVER
-// -----------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
