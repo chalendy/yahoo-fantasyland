@@ -1,167 +1,203 @@
-const backend = "https://yh-fantasyland.onrender.com";
+// Backend is same origin, so we can use relative URLs
+const backend = "";
 
+// Buttons and UI elements
 const authBtn = document.getElementById("authBtn");
 const loadScoreboardBtn = document.getElementById("loadScoreboardBtn");
 const loadMatchupsBtn = document.getElementById("loadMatchupsBtn");
-const output = document.getElementById("output");
-const matchupsContainer = document.getElementById("matchups");
+const statusMessage = document.getElementById("statusMessage");
+const matchupsContainer = document.getElementById("matchupsContainer");
+const jsonOutput = document.getElementById("jsonOutput");
 
-let lastScoreboard = null;
+// Holds the last-loaded scoreboard JSON
+let scoreboardData = null;
 
-// ---------- Helpers ----------
-
-// Safely get the "name" field from Yahoo's crazy team array
-function getTeamName(teamNode) {
-  // teamNode looks like: [ [ {team_key}, {team_id}, {name: "X"}, ... ], { team_points, ... } ]
-  if (!Array.isArray(teamNode) || teamNode.length === 0) return "Unknown Team";
-  const metaArray = teamNode[0]; // first element is an array of meta objects
-  if (!Array.isArray(metaArray)) return "Unknown Team";
-
-  const nameObj = metaArray.find((item) => item && item.name);
-  return nameObj?.name || "Unknown Team";
+// ---- Helpers ----
+function setStatus(msg, isError = false) {
+  statusMessage.textContent = msg;
+  statusMessage.className = isError ? "status-message error" : "status-message";
 }
 
-function getTeamLogo(teamNode) {
-  if (!Array.isArray(teamNode) || teamNode.length === 0) return null;
-  const metaArray = teamNode[0];
-  if (!Array.isArray(metaArray)) return null;
-
-  const logosObj = metaArray.find((item) => item && item.team_logos);
-  const logoUrl =
-    logosObj?.team_logos?.[0]?.team_logo?.url || null;
-  return logoUrl;
+function clearMatchups() {
+  matchupsContainer.innerHTML = "";
 }
 
-function getTeamPoints(teamNode) {
-  if (!Array.isArray(teamNode) || teamNode.length < 2) return { total: "0.00", projected: "0.00" };
-  const stats = teamNode[1]; // second element: { win_probability, team_points, team_projected_points }
+// ---- Button handlers ----
 
-  const total = stats?.team_points?.total ?? "0.00";
-  const projected = stats?.team_projected_points?.total ?? "0.00";
+// 1) Yahoo login
+authBtn.addEventListener("click", () => {
+  window.location.href = `${backend}/auth/start`;
+});
 
-  return { total, projected };
-}
+// 2) Load raw scoreboard JSON from /scoreboard
+loadScoreboardBtn.addEventListener("click", async () => {
+  setStatus("Loading scoreboard JSON…");
+  clearMatchups();
+  jsonOutput.textContent = "";
 
-// Extract matchups from Yahoo JSON
-function extractMatchups(scoreboardJson) {
   try {
-    const fc = scoreboardJson.fantasy_content;
-    if (!fc || !Array.isArray(fc.league) || fc.league.length < 2) return [];
+    const res = await fetch(`${backend}/scoreboard`);
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("Scoreboard error:", res.status, txt);
+      setStatus(`Error fetching scoreboard (${res.status})`, true);
+      return;
+    }
 
-    const leagueMeta = fc.league[0];
-    const scoreboardWrapper = fc.league[1].scoreboard;
-    const currentWeek = scoreboardWrapper.week;
-    const scoreboardData = scoreboardWrapper["0"];
-    const matchupsObj = scoreboardData.matchups;
+    const data = await res.json();
+    scoreboardData = data; // <-- this is what matchups reader will use
 
-    const matchups = [];
-
-    Object.keys(matchupsObj).forEach((key) => {
-      if (key === "count") return;
-
-      const matchupNode = matchupsObj[key].matchup;
-      const matchup0 = matchupNode["0"]; // actual matchup container
-      const teamsObj = matchup0.teams;
-
-      const team0Node = teamsObj["0"]?.team;
-      const team1Node = teamsObj["1"]?.team;
-
-      const teamAName = getTeamName(team0Node);
-      const teamALogo = getTeamLogo(team0Node);
-      const teamAPoints = getTeamPoints(team0Node);
-
-      const teamBName = getTeamName(team1Node);
-      const teamBLogo = getTeamLogo(team1Node);
-      const teamBPoints = getTeamPoints(team1Node);
-
-      matchups.push({
-        week: matchup0.week || currentWeek,
-        teamA: {
-          name: teamAName,
-          logo: teamALogo,
-          points: teamAPoints.total,
-          projected: teamAPoints.projected,
-        },
-        teamB: {
-          name: teamBName,
-          logo: teamBLogo,
-          points: teamBPoints.total,
-          projected: teamBPoints.projected,
-        },
-      });
-    });
-
-    return matchups;
-  } catch (e) {
-    console.error("Error extracting matchups:", e);
-    return [];
+    jsonOutput.textContent = JSON.stringify(data, null, 2);
+    setStatus("Scoreboard JSON loaded. Now click “Load This Week’s Matchups”.");
+  } catch (err) {
+    console.error("Fetch error:", err);
+    setStatus("Error fetching scoreboard. Check console.", true);
   }
-}
+});
 
-function renderMatchups(matchups) {
-  if (!matchupsContainer) return;
+// 3) Parse and display this week’s matchups
+loadMatchupsBtn.addEventListener("click", () => {
+  clearMatchups();
 
-  if (!matchups || matchups.length === 0) {
-    matchupsContainer.innerHTML = `<p>No matchups found for this week.</p>`;
+  if (!scoreboardData) {
+    setStatus(
+      "No scoreboard loaded yet. Click “Load Scoreboard JSON” first.",
+      true
+    );
     return;
   }
 
-  matchupsContainer.innerHTML = matchups
-    .map((m) => {
-      return `
+  try {
+    const fc = scoreboardData.fantasy_content;
+    const leagueArr = fc?.league;
+
+    // Your sample JSON: league[1].scoreboard[0].matchups
+    const scoreboardRoot = Array.isArray(leagueArr)
+      ? leagueArr[1]?.scoreboard?.[0]
+      : null;
+
+    const matchupsObj = scoreboardRoot?.matchups;
+
+    if (!matchupsObj) {
+      setStatus("No matchups found in scoreboard.", true);
+      return;
+    }
+
+    const entries = Object.entries(matchupsObj).filter(
+      ([key]) => key !== "count"
+    );
+
+    if (!entries.length) {
+      setStatus("No matchups found for this week.", true);
+      return;
+    }
+
+    const fragments = [];
+
+    for (const [key, matchupWrapper] of entries) {
+      const matchup = matchupWrapper.matchup;
+
+      // In your JSON, "matchup": { "0": { teams: {...} }, week: "...", ... }
+      const core =
+        matchup?.["0"] || (Array.isArray(matchup) ? matchup[0] : matchup);
+      const teamsObj = core?.teams;
+
+      if (!teamsObj) continue;
+
+      const teamEntries = Object.entries(teamsObj).filter(
+        ([k]) => k !== "count"
+      );
+
+      if (teamEntries.length < 2) continue;
+
+      const parsedTeams = teamEntries.map(([, t]) => {
+        const teamArr = t.team;
+        if (!Array.isArray(teamArr) || teamArr.length < 1) return null;
+
+        const metaArr = teamArr[0]; // array of objects: {name}, {url}, {team_logos}, etc.
+        const stats = teamArr[1] || {};
+
+        const nameObj = Array.isArray(metaArr)
+          ? metaArr.find((o) => o && typeof o === "object" && "name" in o)
+          : null;
+        const name = nameObj?.name || "Unknown Team";
+
+        const logoObj = Array.isArray(metaArr)
+          ? metaArr.find((o) => o && o.team_logos)
+          : null;
+        const logoUrl =
+          logoObj?.team_logos?.[0]?.team_logo?.url || null;
+
+        const points = parseFloat(stats?.team_points?.total || "0") || 0;
+        const projected =
+          parseFloat(stats?.team_projected_points?.total || "0") || 0;
+        const winProb = stats?.win_probability;
+        const winProbPct =
+          typeof winProb === "number"
+            ? `${(winProb * 100).toFixed(0)}%`
+            : null;
+
+        return { name, logoUrl, points, projected, winProbPct };
+      });
+
+      if (parsedTeams.includes(null) || parsedTeams.length < 2) continue;
+
+      const [home, away] = parsedTeams;
+
+      const cardHtml = `
         <div class="matchup-card">
-          <div class="matchup-week">Week ${m.week}</div>
-          <div class="matchup-teams">
-            <div class="team">
-              ${m.teamA.logo ? `<img src="${m.teamA.logo}" alt="${m.teamA.name}" class="team-logo" />` : ""}
-              <div class="team-name">${m.teamA.name}</div>
-              <div class="team-score">
-                <span class="actual">${m.teamA.points}</span>
-                <span class="projected">(${m.teamA.projected} proj)</span>
-              </div>
+          <div class="team team-home">
+            ${
+              home.logoUrl
+                ? `<img src="${home.logoUrl}" alt="${home.name} logo" class="team-logo" />`
+                : ""
+            }
+            <div class="team-name">${home.name}</div>
+            <div class="team-points">
+              <span class="points">${home.points.toFixed(2)}</span>
+              <span class="projected">Proj: ${home.projected.toFixed(2)}</span>
+              ${
+                home.winProbPct
+                  ? `<span class="winprob">Win: ${home.winProbPct}</span>`
+                  : ""
+              }
             </div>
-            <div class="vs">vs</div>
-            <div class="team">
-              ${m.teamB.logo ? `<img src="${m.teamB.logo}" alt="${m.teamB.name}" class="team-logo" />` : ""}
-              <div class="team-name">${m.teamB.name}</div>
-              <div class="team-score">
-                <span class="actual">${m.teamB.points}</span>
-                <span class="projected">(${m.teamB.projected} proj)</span>
-              </div>
+          </div>
+
+          <div class="vs">vs</div>
+
+          <div class="team team-away">
+            ${
+              away.logoUrl
+                ? `<img src="${away.logoUrl}" alt="${away.name} logo" class="team-logo" />`
+                : ""
+            }
+            <div class="team-name">${away.name}</div>
+            <div class="team-points">
+              <span class="points">${away.points.toFixed(2)}</span>
+              <span class="projected">Proj: ${away.projected.toFixed(2)}</span>
+              ${
+                away.winProbPct
+                  ? `<span class="winprob">Win: ${away.winProbPct}</span>`
+                  : ""
+              }
             </div>
           </div>
         </div>
       `;
-    })
-    .join("");
-}
 
-// ---------- Button handlers ----------
+      fragments.push(cardHtml);
+    }
 
-authBtn?.addEventListener("click", () => {
-  window.location.href = `${backend}/auth/start`;
-});
+    if (!fragments.length) {
+      setStatus("No matchups could be parsed from the scoreboard.", true);
+      return;
+    }
 
-loadScoreboardBtn?.addEventListener("click", async () => {
-  output.textContent = "Loading scoreboard JSON...";
-  matchupsContainer.innerHTML = ""; // clear matchups when loading raw JSON
-
-  try {
-    const res = await fetch(`${backend}/scoreboard`);
-    const data = await res.json();
-    lastScoreboard = data;
-    output.textContent = JSON.stringify(data, null, 2);
+    matchupsContainer.innerHTML = fragments.join("");
+    setStatus("");
   } catch (err) {
-    console.error(err);
-    output.textContent = "Error fetching scoreboard. See console for details.";
+    console.error("Error parsing matchups:", err);
+    setStatus("Error parsing matchups. Check console.", true);
   }
-});
-
-loadMatchupsBtn?.addEventListener("click", () => {
-  if (!lastScoreboard) {
-    output.textContent = "No scoreboard loaded yet. Click 'Load Scoreboard JSON' first.";
-    return;
-  }
-  const matchups = extractMatchups(lastScoreboard);
-  renderMatchups(matchups);
 });
