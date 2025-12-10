@@ -2,46 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>YH Fantasy Land</title>
+  <title>YH Fantasyland</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
-    <div class="header-inner">
-      <h1 class="app-title">YH Fantasy Land</h1>
-      <button id="authBtn" class="btn btn-primary">Sign in with Yahoo</button>
-    </div>
+    <h1>YH Fantasyland</h1>
+    <p class="subtitle">Yahoo Fantasy Football – League 38076</p>
   </header>
 
   <main class="main">
     <section class="controls">
-      <button id="loadBtn" class="btn">Load Scoreboard JSON</button>
-      <button id="loadMatchupsBtn" class="btn btn-outline">Load This Week&#39;s Matchups</button>
+      <button id="authBtn" class="btn primary">Sign In with Yahoo</button>
+      <button id="loadScoreboardBtn" class="btn">Load Scoreboard JSON</button>
+      <button id="loadMatchupsBtn" class="btn">Load This Week’s Matchups</button>
     </section>
 
-    <section class="content-grid">
-      <!-- Left: Matchups -->
-      <section class="card">
-        <h2>Week Matchups</h2>
-        <div id="matchupsContainer" class="matchups-container">
-          <!-- Matchup cards will be injected here by app.js -->
-        </div>
-      </section>
+    <section class="status">
+      <div id="statusMessage"></div>
+    </section>
 
-      <!-- Right: Raw JSON / Debug -->
-      <section class="card">
-        <h2>Raw Scoreboard JSON</h2>
-        <pre id="output" class="json-output">
-          <!-- JSON debug output from app.js -->
-        </pre>
-      </section>
+    <section class="matchups-section">
+      <h2>This Week’s Matchups</h2>
+      <div id="matchupsContainer" class="matchups-container"></div>
+    </section>
+
+    <section class="json-section">
+      <details>
+        <summary>Raw Scoreboard JSON (debug)</summary>
+        <pre id="jsonOutput"></pre>
+      </details>
     </section>
   </main>
-
-  <footer class="footer">
-    <p>Powered by Yahoo Fantasy Sports API</p>
-  </footer>
 
   <script src="app.js"></script>
 </body>
