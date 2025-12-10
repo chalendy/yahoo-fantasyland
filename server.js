@@ -140,3 +140,40 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// -----------------------------
+//  STANDINGS ROUTE
+// -----------------------------
+app.get("/standings", async (req, res) => {
+  if (!accessToken) {
+    return res
+      .status(401)
+      .json({ error: "Not authenticated. Please click Sign In first." });
+  }
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
+
+    const apiRes = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const bodyText = await apiRes.text();
+
+    if (!apiRes.ok) {
+      console.error("Yahoo standings error:", apiRes.status, bodyText);
+      return res
+        .status(500)
+        .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+    }
+
+    const data = JSON.parse(bodyText);
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching standings:", err);
+    res.status(500).json({ error: "Failed to fetch standings" });
+  }
+});
+
