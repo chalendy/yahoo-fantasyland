@@ -1,219 +1,377 @@
-:root {
-  --bg: #050816;
-  --bg-panel: #101828;
-  --accent: #f97316;
-  --accent-soft: rgba(249, 115, 22, 0.16);
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --border-subtle: #1f2937;
-  --radius-lg: 16px;
-  --radius-md: 10px;
-  --shadow-soft: 0 22px 45px rgba(15, 23, 42, 0.75);
-  --gap: 1rem;
+/* ---- Base layout ---- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-* {
-  box-sizing: border-box;
+:root {
+  --bg: #050816;
+  --bg-alt: #0b1020;
+  --card: #111827;
+  --card-alt: #020617;
+  --accent: #22c55e;
+  --accent-soft: rgba(34, 197, 94, 0.15);
+  --accent-2: #38bdf8;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --danger: #f97373;
+  --border: rgba(148, 163, 184, 0.3);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.7);
+  --shadow-subtle: 0 10px 25px rgba(15, 23, 42, 0.6);
 }
 
 body {
-  margin: 0;
+  min-height: 100vh;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #111827, #020617 60%);
-  color: var(--text-main);
-  min-height: 100vh;
+  background: radial-gradient(circle at top, #1d283a, #020617 55%);
+  color: var(--text);
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  padding: 24px;
 }
 
-/* Header */
+/* ---- Page wrapper ---- */
 
-.header {
-  padding: 1.5rem 1.25rem 0.75rem;
-  text-align: center;
+.app-shell {
+  width: 100%;
+  max-width: 1120px;
+  background: radial-gradient(circle at top left, #111827, #020617 60%);
+  border-radius: 26px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
 }
 
-.header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  letter-spacing: 0.06em;
+/* ---- Header ---- */
+
+.app-header {
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  backdrop-filter: blur(20px);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.93),
+    rgba(8, 47, 73, 0.9)
+  );
+}
+
+.app-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-title-badge {
+  font-size: 0.75rem;
   text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--accent-2);
+  border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
-.subtitle {
-  margin: 0.25rem 0 0;
-  color: var(--text-muted);
+.app-subtitle {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
-/* Layout */
+/* ---- Button bar ---- */
 
-.layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 1.25rem 1.25rem;
-  gap: var(--gap);
-}
-
-/* Controls */
-
-.controls {
+.button-row {
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
+  gap: 10px;
 }
 
 button {
   border: none;
-  border-radius: 999px;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.9rem;
-  background: var(--accent-soft);
-  color: var(--accent);
   cursor: pointer;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
-  box-shadow: 0 6px 15px rgba(15, 23, 42, 0.5);
+  font-size: 0.9rem;
+  border-radius: 999px;
+  padding: 9px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-button:hover {
-  background: rgba(249, 115, 22, 0.26);
+/* primary button: Sign in */
+button#authBtn {
+  background: linear-gradient(135deg, var(--accent), #16a34a);
+  color: #022c22;
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+}
+
+button#authBtn:hover {
   transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(34, 197, 94, 0.4);
+}
+
+/* secondary buttons */
+button#loadScoreboardBtn,
+button#loadMatchupsBtn {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+}
+
+button#loadScoreboardBtn:hover,
+button#loadMatchupsBtn:hover {
+  background: rgba(15, 23, 42, 1);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-subtle);
 }
 
 button:active {
-  transform: translateY(1px);
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.7);
+  transform: translateY(0);
+  box-shadow: none;
 }
 
-/* Content */
+/* fallback if button IDs differ */
+button.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #16a34a);
+  color: #022c22;
+}
 
-.content {
+button.btn-secondary {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+}
+
+/* ---- Main content layout ---- */
+
+.app-main {
+  padding: 18px 20px 18px;
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.1fr);
-  gap: var(--gap);
-  margin-top: 0.5rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr);
+  gap: 18px;
 }
 
-.panel {
-  background: linear-gradient(145deg, #020617, #020617 40%, #020617 100%);
+@media (max-width: 900px) {
+  .app-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Card styles ---- */
+
+.card {
+  background: radial-gradient(circle at top left, var(--card), var(--card-alt));
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 1rem;
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(26px);
+  padding: 16px 16px 14px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-subtle);
+  position: relative;
+  overflow: hidden;
 }
 
-.panel h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-
-.week-label {
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-/* Matchups */
-
-.matchups {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.matchup-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.75rem 0.8rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: radial-gradient(circle at top left, #111827, #020617 60%);
-}
-
-.matchup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
-}
-
-.matchup-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--text-muted);
-}
-
-.matchup-meta {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.team-row {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 0.5rem;
+  margin-bottom: 10px;
 }
 
-.team-name {
+.card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #cbd5f5;
+}
+
+.card-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ---- JSON output panel ---- */
+
+.json-output {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  padding: 10px 12px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #e5e7eb;
+  max-height: 360px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+.json-output::-webkit-scrollbar {
+  width: 6px;
+}
+
+.json-output::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.8);
+  border-radius: 999px;
+}
+
+/* ---- Matchups list ---- */
+
+#matchupsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 390px;
+  overflow: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+#matchupsContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+#matchupsContainer::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.8);
+  border-radius: 999px;
+}
+
+.matchup-card {
+  border-radius: 16px;
+  background: radial-gradient(circle at top left, #020617, #020617 40%, #020617);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  padding: 10px 12px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1.4fr);
+  gap: 10px;
+  align-items: center;
+  position: relative;
+}
+
+.matchup-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at top center,
+    rgba(34, 197, 94, 0.09),
+    transparent 55%
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.matchup-team {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1;
+}
+
+.matchup-team-name {
   font-weight: 600;
   font-size: 0.95rem;
 }
 
-.team-points {
-  text-align: right;
+.matchup-team-manager {
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
-.team-score {
-  font-size: 1rem;
-  font-weight: 700;
+.matchup-team-projection {
+  font-size: 0.85rem;
+  color: var(--accent-2);
 }
 
-.team-proj {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* JSON output */
-
-.json-output {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  max-height: 360px;
-  overflow: auto;
-  background: #020617;
-  border-radius: 10px;
-  padding: 0.75rem;
-  border: 1px solid var(--border-subtle);
-}
-
-/* Footer */
-
-.footer {
+.matchup-vs {
   text-align: center;
-  padding: 0.75rem 1rem 1.25rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  z-index: 1;
 }
 
-/* Responsive */
+.matchup-meta {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
 
-@media (max-width: 800px) {
-  .content {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* fallback if your JS uses simple <div> with text */
+.matchup-card p {
+  margin: 1px 0;
+}
 
-  .panel {
-    padding: 0.85rem;
-  }
+/* ---- Status / messages ---- */
+
+.status-message {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.status-message--error {
+  color: var(--danger);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: var(--accent);
+}
+
+/* ---- Footer ---- */
+
+.app-footer {
+  padding: 10px 16px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-footer a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
 }
