@@ -7,34 +7,42 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="header">
-    <h1>YH Fantasyland</h1>
-    <p class="subtitle">Yahoo Fantasy Football – League 38076</p>
-  </header>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-title-block">
+        <h1 class="app-title">Fantasy Land</h1>
+        <p class="app-subtitle">Week Matchups & Scoreboard</p>
+      </div>
+      <div class="header-pill">
+        <span class="pill-label">Yahoo League</span>
+        <span class="pill-value">#38076</span>
+      </div>
+    </header>
 
-  <main class="main">
-    <section class="controls">
-      <button id="authBtn" class="btn primary">Sign In with Yahoo</button>
-      <button id="loadScoreboardBtn" class="btn">Load Scoreboard JSON</button>
-      <button id="loadMatchupsBtn" class="btn">Load This Week’s Matchups</button>
-    </section>
+    <main class="app-main">
+      <section class="controls">
+        <button id="authBtn" class="btn primary">Sign in with Yahoo</button>
+        <button id="loadScoreboardBtn" class="btn secondary">Load Scoreboard JSON</button>
+        <button id="loadMatchupsBtn" class="btn ghost">Load This Week's Matchups</button>
+      </section>
 
-    <section class="status">
-      <div id="statusMessage"></div>
-    </section>
+      <section class="matchups-section">
+        <h2 class="section-title">This Week's Matchups</h2>
+        <div id="matchupsContainer" class="matchups-grid">
+          <!-- JS injects matchup cards here -->
+        </div>
+        <p id="matchupsMessage" class="section-message"></p>
+      </section>
 
-    <section class="matchups-section">
-      <h2>This Week’s Matchups</h2>
-      <div id="matchupsContainer" class="matchups-container"></div>
-    </section>
-
-    <section class="json-section">
-      <details>
-        <summary>Raw Scoreboard JSON (debug)</summary>
-        <pre id="jsonOutput"></pre>
-      </details>
-    </section>
-  </main>
+      <section class="json-section">
+        <div class="json-header">
+          <h2 class="section-title">Raw Scoreboard JSON</h2>
+          <span class="json-hint">For debugging / dev only</span>
+        </div>
+        <pre id="output" class="json-output"></pre>
+      </section>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
