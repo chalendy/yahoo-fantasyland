@@ -1,115 +1,136 @@
 import express from "express";
 import path from "path";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ================================
-//   STATIC FILES (THE IMPORTANT PART)
-// ================================
+// For ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Serve frontend folder (index + css + js)
-app.use(express.static(path.join(__dirname, "backend/public/frontend")));
+// --- ENV ---
+const CLIENT_ID = process.env.YAHOO_CLIENT_ID;
+const CLIENT_SECRET = process.env.YAHOO_CLIENT_SECRET;
+const REDIRECT_URI = "https://yh-fantasyland.onrender.com/auth/callback";
 
-// Serve index.html on root
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "backend/public/frontend/index.html"));
-});
+// Your league info
+const LEAGUE_ID = "38076";      // from your URL
+const GAME_KEY = "nfl";         // use game code for current NFL season
+const LEAGUE_KEY = `${GAME_KEY}.l.${LEAGUE_ID}`;
 
-// =================================
-//   YAHOO OAUTH START
-// =================================
+// Store token in memory (simple demo storage)
+let accessToken = null;
 
+// -----------------------------
+//  OAUTH START
+// -----------------------------
 app.get("/auth/start", (req, res) => {
-  const redirectUri = encodeURIComponent(process.env.YAHOO_REDIRECT_URI);
-  const clientId = process.env.YAHOO_CLIENT_ID;
+  const authURL = new URL("https://api.login.yahoo.com/oauth2/request_auth");
+  authURL.searchParams.set("client_id", CLIENT_ID);
+  authURL.searchParams.set("redirect_uri", REDIRECT_URI);
+  authURL.searchParams.set("response_type", "code");
+  authURL.searchParams.set("language", "en-us");
 
-  const authURL =
-    `https://api.login.yahoo.com/oauth2/request_auth` +
-    `?client_id=${clientId}` +
-    `&redirect_uri=${redirectUri}` +
-    `&response_type=code` +
-    `&language=en-us`;
-
-  res.redirect(authURL);
+  res.redirect(authURL.toString());
 });
 
-// =================================
-//   YAHOO OAUTH CALLBACK
-// =================================
-
-let yahooAccessToken = null;
-
+// -----------------------------
+//  OAUTH CALLBACK
+// -----------------------------
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
-  if (!code) return res.status(400).send("Missing authorization code.");
+
+  if (!code) {
+    return res.status(400).send("Missing authorization code.");
+  }
 
   try {
-    // Exchange code for token
-    const tokenRes = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
+    const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
       method: "POST",
       headers: {
-        Authorization:
-          "Basic " +
-          Buffer.from(
-            `${process.env.YAHOO_CLIENT_ID}:${process.env.YAHOO_CLIENT_SECRET}`
-          ).toString("base64"),
+        "Authorization":
+          "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",
+        redirect_uri: REDIRECT_URI,
         code,
-        redirect_uri: process.env.YAHOO_REDIRECT_URI,
       }),
     });
 
-    const tokenJson = await tokenRes.json();
-    yahooAccessToken = tokenJson.access_token;
+    const tokenData = await tokenResponse.json();
 
+    if (tokenData.error) {
+      console.error("Token error from Yahoo:", tokenData);
+      return res.status(400).send("Token error: " + JSON.stringify(tokenData));
+    }
+
+    // Save token for later API calls
+    accessToken = tokenData.access_token;
+    console.log("Got access token from Yahoo");
+
+    // Send user back to main app
     res.redirect("/");
   } catch (err) {
-    console.error("OAuth callback error:", err);
-    res.status(500).send("OAuth Error");
+    console.error("OAuth callback failure:", err);
+    res.status(500).send("OAuth callback failure");
   }
 });
 
-// =================================
-//   SCOREBOARD API PROXY
-// =================================
-
-app.get("/api/scoreboard", async (req, res) => {
-  if (!yahooAccessToken) {
-    return res.status(401).json({ error: "Not authenticated with Yahoo." });
+// -----------------------------
+//  SCOREBOARD ROUTE
+// -----------------------------
+app.get("/scoreboard", async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
   }
 
-  const leagueKey = "nfl.l.38076";
-  const url =
-    `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard?format=json`;
-
   try {
-    const scoreRes = await fetch(url, {
-      headers: { Authorization: `Bearer ${yahooAccessToken}` },
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+
+    const apiRes = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
 
-    const json = await scoreRes.json();
-    res.json(json);
+    const bodyText = await apiRes.text();
+
+    if (!apiRes.ok) {
+      console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
+      return res
+        .status(500)
+        .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+    }
+
+    // Yahoo already returns JSON (because of ?format=json)
+    const data = JSON.parse(bodyText);
+    res.json(data);
   } catch (err) {
-    console.error("Scoreboard API error:", err);
+    console.error("Error fetching scoreboard:", err);
     res.status(500).json({ error: "Failed to fetch scoreboard" });
   }
 });
 
-// =================================
-//   START SERVER
-// =================================
+// -----------------------------
+//  FRONTEND
+// -----------------------------
+const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 
+app.use(express.static(frontendPath));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
+// -----------------------------
+//  START SERVER
+// -----------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
