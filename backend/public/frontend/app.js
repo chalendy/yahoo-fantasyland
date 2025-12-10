@@ -1,5 +1,5 @@
 // Replace this with your backend URL on Render
-const backend = "https://yahoo-fantasyland.onrender.com";
+const backend = "https://yh-fantasyland.onrender.com";
 
 // Replace this with your actual league key from Yahoo Fantasy
 const leagueKey = "nfl.l.38076"; // Example: "nfl.l.123456"
