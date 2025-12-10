@@ -405,3 +405,45 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Standings */
+#standingsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.standings-row {
+  display: flex;
+  justify-content: space-between;
+  background: var(--bg-elevated-soft);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.standings-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.standings-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.standings-record {
+  font-weight: 600;
+}
+
+.standings-pct {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
