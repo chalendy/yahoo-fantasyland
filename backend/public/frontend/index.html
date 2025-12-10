@@ -2,74 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Fantasy Land 2025</title>
+  <title>Fantasy Land – Yahoo League Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="frontend/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <div class="page-wrapper">
-
-    <!-- ================= HEADER ================= -->
-    <header class="header">
+  <div class="app-shell">
+    <header class="app-header">
       <div>
-        <h1 class="title">Fantasy Land 2025</h1>
+        <h1>Fantasy Land 2025</h1>
         <p class="subtitle">Yahoo Fantasy Football · League 38076</p>
       </div>
-
-      <div class="header-controls">
-        <label for="weekSelect">Week:</label>
-        <select id="weekSelect"></select>
-        <button id="authBtn" class="btn-primary">Sign in with Yahoo</button>
-      </div>
+      <button id="authBtn" class="btn btn-primary">Sign In with Yahoo</button>
     </header>
 
-
-    <!-- ================= CONTROLS CARD ================= -->
-    <section class="controls-card">
-      <h2>Controls</h2>
-      <p class="helptext">
-        1. Sign in with Yahoo · 2. Load scoreboard JSON · 3. View this week’s matchups.
-      </p>
-
-      <div class="control-btn-row">
-        <button id="reloadJsonBtn" class="btn-secondary">Load Scoreboard JSON</button>
-        <button id="loadMatchupsBtn" class="btn-accent">Load This Week's Matchups</button>
-      </div>
-
-      <p id="matchupsMessage" class="status-message"></p>
-    </section>
-
-
-    <!-- ================= MAIN CONTENT GRID ================= -->
-    <div class="main-grid">
-
-      <!-- ===== MATCHUPS PANEL ===== -->
-      <section class="matchups-panel">
-        <div class="panel-header">
-          <h2 id="matchupsTitle">This Week's Matchups</h2>
-          <span id="playoffBadge" class="badge" hidden>Playoffs</span>
+    <main class="app-main">
+      <section class="controls-card">
+        <h2>Controls</h2>
+        <p class="hint">
+          1. Sign in with Yahoo · 2. Load the raw scoreboard JSON · 3. Render this week’s matchups.
+        </p>
+        <div class="button-row">
+          <button id="loadJsonBtn" class="btn btn-secondary">
+            Load Scoreboard JSON
+          </button>
+          <button id="loadMatchupsBtn" class="btn btn-accent">
+            Load This Week’s Matchups
+          </button>
         </div>
-
-        <div id="matchupsContainer" class="matchups-grid">
-          <!-- Matchup cards injected here -->
-        </div>
+        <p id="statusMessage" class="status-message"></p>
       </section>
 
+      <section class="layout">
+        <section class="matchups-panel">
+          <div class="panel-header">
+            <h2>This Week's Matchups</h2>
+            <span id="weekLabel" class="week-label"></span>
+          </div>
+          <div id="matchupsContainer" class="matchups-grid">
+            <!-- Matchup cards get injected here -->
+          </div>
+        </section>
 
-      <!-- ===== JSON PANEL ===== -->
-      <aside class="json-panel">
-        <div class="json-header">
-          <h3>Scoreboard JSON</h3>
-          <span class="debug-pill">Debug View</span>
-        </div>
+        <section class="json-panel">
+          <div class="panel-header">
+            <h2>Scoreboard JSON</h2>
+            <span class="json-pill">Debug View</span>
+          </div>
+          <pre id="jsonOutput" class="json-output">
+Click "Load Scoreboard JSON" to see the raw Yahoo API response here.
+          </pre>
+        </section>
+      </section>
+    </main>
 
-        <pre id="scoreboardJson" class="json-output">
-Click "Load Scoreboard JSON" to load raw Yahoo API data.
-        </pre>
-      </aside>
-
-    </div>
+    <footer class="app-footer">
+      <small>Powered by Yahoo Fantasy Sports API · Built for Fantasy Land</small>
+    </footer>
   </div>
 
   <script src="app.js"></script>
