@@ -9,29 +9,32 @@
 <body>
   <header class="header">
     <h1>YH Fantasyland</h1>
-    <p>Yahoo Fantasy Football League Viewer</p>
+    <p class="subtitle">Yahoo Fantasy Football League 38076</p>
   </header>
 
-  <main class="main">
+  <main class="layout">
     <section class="controls">
-      <button id="authBtn" class="btn primary">Sign in with Yahoo</button>
-      <button id="loadMatchupsBtn" class="btn">Load This Week's Matchups</button>
-      <button id="loadScoreboardBtn" class="btn secondary">Show Raw Scoreboard JSON</button>
+      <button id="authBtn">Sign in with Yahoo</button>
+      <button id="loadJsonBtn">Show Raw Scoreboard JSON</button>
+      <button id="loadMatchupsBtn">Load This Week's Matchups</button>
     </section>
 
-    <section class="matchups-section">
-      <h2>This Week's Matchups</h2>
-      <div id="matchups" class="matchups"></div>
-    </section>
+    <section class="content">
+      <div class="panel">
+        <h2>Matchups This Week</h2>
+        <p id="weekLabel" class="week-label"></p>
+        <div id="matchupsContainer" class="matchups"></div>
+      </div>
 
-    <section class="debug-section">
-      <h2>Raw Scoreboard JSON (debug)</h2>
-      <pre id="output" class="output"></pre>
+      <div class="panel">
+        <h2>Raw Scoreboard JSON</h2>
+        <pre id="jsonOutput" class="json-output"></pre>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <small>Powered by Yahoo Fantasy Sports API</small>
+    <small>Powered by Yahoo Fantasy Sports</small>
   </footer>
 
   <script src="app.js"></script>
