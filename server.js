@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 
