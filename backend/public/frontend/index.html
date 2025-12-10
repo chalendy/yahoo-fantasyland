@@ -1,21 +1,85 @@
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<body>
-  <h1>YH Fantasyland</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>YH Fantasyland</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <h1 class="app-title">YH Fantasyland</h1>
+          <p class="app-subtitle">Yahoo Fantasy Football League Hub</p>
+        </div>
+        <div class="header-right">
+          <button id="authBtn" class="btn btn-primary">
+            Sign in with Yahoo
+          </button>
+        </div>
+      </header>
 
-  <button id="authBtn">Sign in with Yahoo</button>
-  <button id="loadBtn">Load Scoreboard</button>
+      <!-- Main content -->
+      <main class="main">
+        <!-- Top bar: week + actions -->
+        <section class="toolbar">
+          <div class="toolbar-left">
+            <h2 id="league-name" class="league-name">Your League</h2>
+            <p id="week-label" class="week-label">Week —</p>
+          </div>
+          <div class="toolbar-right">
+            <button id="loadBtn" class="btn btn-secondary">
+              Load This Week's Matchups
+            </button>
+          </div>
+        </section>
 
-  <h2>This Week's Matchups</h2>
-  <div id="matchups"></div>
+        <!-- Matchups grid -->
+        <section class="matchups-section">
+          <h3 class="section-title">Matchups</h3>
+          <div id="matchups" class="matchups-grid">
+            <!-- JS will inject matchup cards here -->
+            <!-- Example structure your JS can create:
+            <article class="matchup-card">
+              <div class="team team-home">
+                <img class="team-logo" src="..." alt="Team logo" />
+                <div class="team-text">
+                  <h4 class="team-name">Will.I.Am</h4>
+                  <p class="manager-name">Jordan</p>
+                </div>
+                <div class="team-points">
+                  <span class="points-total">0.00</span>
+                  <span class="points-proj">Proj: 101.90</span>
+                </div>
+              </div>
+              <div class="vs-divider">
+                <span>vs</span>
+              </div>
+              <div class="team team-away">
+                ...
+              </div>
+            </article>
+            -->
+          </div>
+        </section>
 
-  <h2>Raw Scoreboard JSON (debug)</h2>
-  <pre id="output"></pre>
+        <!-- Optional debug output -->
+        <section class="debug-section">
+          <details>
+            <summary>Raw API response (debug)</summary>
+            <pre id="output" class="debug-output"></pre>
+          </details>
+        </section>
+      </main>
 
-  <script src="app.js"></script>
-</body>
+      <!-- Footer -->
+      <footer class="footer">
+        <p>Built for the boys 🏈 – YH Fantasyland</p>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
 </html>
