@@ -56,7 +56,7 @@ async function loadScoreboardForWeek(week) {
   try {
     setStatus(`Loading week ${week}...`);
 
-    const res = await fetch(`${backendBase}/scoreboard`);
+    const res = await fetch(`${backendBase}/scoreboard?week=${week}`);
     if (!res.ok) {
       const text = await res.text();
       console.warn("Scoreboard not available yet:", res.status, text);
@@ -66,7 +66,6 @@ async function loadScoreboardForWeek(week) {
 
     const data = await res.json();
     scoreboardData = data;
-
     return data;
   } catch (err) {
     console.error("Fetch error:", err);
@@ -74,6 +73,7 @@ async function loadScoreboardForWeek(week) {
     return null;
   }
 }
+
 
 // Extract matchups ONLY for selected week
 function extractMatchups(data) {
@@ -248,11 +248,8 @@ if (loadMatchupsBtn) {
 // WEEK CHANGE
 weekSelect?.addEventListener("change", async () => {
   selectedWeek = parseInt(weekSelect.value);
-  setStatus(`Week changed to ${selectedWeek}`);
-
   scoreboardData = await loadScoreboardForWeek(selectedWeek);
-  if (!scoreboardData) return;
-
+  
   const matchups = extractMatchups(scoreboardData);
   renderMatchupCards(matchups);
 
