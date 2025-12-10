@@ -19,7 +19,7 @@ const REDIRECT_URI = "https://yh-fantasyland.onrender.com/auth/callback";
 
 // Your league info
 const LEAGUE_ID = "38076";      // from your URL
-const GAME_KEY = "nfl";         // use game code for current NFL season
+const GAME_KEY = "nfl";         // nfl game code for current season
 const LEAGUE_KEY = `${GAME_KEY}.l.${LEAGUE_ID}`;
 
 // Store token in memory (simple demo storage)
@@ -83,15 +83,19 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD ROUTE
+//  SCOREBOARD ROUTE (with ?week=)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
   }
 
+  const week = req.query.week;
   try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+    let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+    if (week) {
+      url += `&week=${encodeURIComponent(week)}`;
+    }
 
     const apiRes = await fetch(url, {
       headers: {
@@ -108,7 +112,6 @@ app.get("/scoreboard", async (req, res) => {
         .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
     }
 
-    // Yahoo already returns JSON (because of ?format=json)
     const data = JSON.parse(bodyText);
     res.json(data);
   } catch (err) {
