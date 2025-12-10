@@ -1,3 +1,5 @@
+//updated 12-10-2025
+
 // Using same origin (Render serves frontend + backend together)
 const authBtn = document.getElementById("authBtn");
 const weekSelect = document.getElementById("weekSelect");
