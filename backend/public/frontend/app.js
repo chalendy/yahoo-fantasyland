@@ -1,4 +1,5 @@
-const backendBase = "";
+// If frontend is served from the same origin as backend, we can use relative URLs
+const backendBase = ""; // same origin
 
 // UI elements
 const authBtn = document.getElementById("authBtn");
@@ -13,7 +14,9 @@ const weekSelect = document.getElementById("weekSelect");
 let scoreboardData = null;
 let selectedWeek = null;
 
-// Helpers ----------------------------------------------------
+// -------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------
 
 function setStatus(msg) {
   if (statusMessage) statusMessage.textContent = msg;
@@ -27,14 +30,16 @@ function pluckField(arr, key) {
   return null;
 }
 
-// Week dropdown builder -------------------------------------
-
+// -------------------------------------------------------------
+// Week dropdown builder
+// -------------------------------------------------------------
 function populateWeekDropdown(meta) {
   const start = parseInt(meta.start_week);
   const end = parseInt(meta.end_week);
   const current = parseInt(meta.current_week);
 
   weekSelect.innerHTML = "";
+
   for (let w = start; w <= end; w++) {
     const opt = document.createElement("option");
     opt.value = w;
@@ -46,8 +51,9 @@ function populateWeekDropdown(meta) {
   selectedWeek = current;
 }
 
-// Fetch scoreboard for a given week -------------------------
-
+// -------------------------------------------------------------
+// Fetch scoreboard for selected week
+// -------------------------------------------------------------
 async function loadScoreboardForWeek(week) {
   try {
     setStatus(`Loading week ${week}...`);
@@ -63,7 +69,9 @@ async function loadScoreboardForWeek(week) {
 
     const data = await res.json();
     scoreboardData = data;
+    selectedWeek = week;
     return data;
+
   } catch (err) {
     console.error("Fetch error:", err);
     setStatus("Error loading scoreboard.");
@@ -71,13 +79,15 @@ async function loadScoreboardForWeek(week) {
   }
 }
 
-// Extract matchups ------------------------------------------
-
+// -------------------------------------------------------------
+// Extract matchups
+// -------------------------------------------------------------
 function extractMatchups(data) {
   try {
     const leagueArr = data.fantasy_content.league;
     const scoreboard = leagueArr[1].scoreboard;
-    const matchupsObj = scoreboard["0"].matchups;
+    const root = scoreboard["0"];
+    const matchupsObj = root.matchups;
 
     const result = [];
 
@@ -115,14 +125,16 @@ function extractMatchups(data) {
       });
 
     return result;
+
   } catch (err) {
     console.error("Error extracting matchups:", err);
     return [];
   }
 }
 
-// Render cards ----------------------------------------------
-
+// -------------------------------------------------------------
+// Render matchups
+// -------------------------------------------------------------
 function renderMatchupCards(matchups) {
   matchupsContainer.innerHTML = "";
 
@@ -142,10 +154,9 @@ function renderMatchupCards(matchups) {
       <div class="matchup-body">
         <div class="team-column">
           <div class="team-info">
-            ${
-              m.teamA.logo
-                ? `<img src="${m.teamA.logo}" class="team-logo">`
-                : `<div class="team-logo placeholder-logo">A</div>`
+            ${m.teamA.logo
+              ? `<img src="${m.teamA.logo}" class="team-logo">`
+              : `<div class="team-logo placeholder-logo">A</div>`
             }
             <div>
               <div class="team-name">${m.teamA.name}</div>
@@ -169,10 +180,9 @@ function renderMatchupCards(matchups) {
                 ${Bprob != null ? `· Win% ${Bprob}%` : ""}
               </div>
             </div>
-            ${
-              m.teamB.logo
-                ? `<img src="${m.teamB.logo}" class="team-logo">`
-                : `<div class="team-logo placeholder-logo">B</div>`
+            ${m.teamB.logo
+              ? `<img src="${m.teamB.logo}" class="team-logo">`
+              : `<div class="team-logo placeholder-logo">B</div>`
             }
           </div>
           <div class="team-score">${m.teamB.score}</div>
@@ -184,13 +194,13 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// Sign In -----------------------------------------------
+// -------------------------------------------------------------
+// Button Handlers
+// -------------------------------------------------------------
 
 authBtn?.addEventListener("click", () => {
   window.location.href = `${backendBase}/auth/start`;
 });
-
-// Load JSON ----------------------------------------------
 
 loadJsonBtn?.addEventListener("click", async () => {
   const data = await loadScoreboardForWeek(selectedWeek ?? 1);
@@ -205,20 +215,15 @@ loadJsonBtn?.addEventListener("click", async () => {
   setStatus("JSON Loaded.");
 });
 
-// Load Matchups -------------------------------------------
-
 loadMatchupsBtn?.addEventListener("click", () => {
-  if (!scoreboardData) {
+  if (!scoreboardData)
     return setStatus("Load JSON first.");
-  }
 
   const matchups = extractMatchups(scoreboardData);
   renderMatchupCards(matchups);
 
   weekLabel.textContent = `Week ${selectedWeek}`;
 });
-
-// Week Change ---------------------------------------------
 
 weekSelect?.addEventListener("change", async () => {
   selectedWeek = parseInt(weekSelect.value);
@@ -233,12 +238,30 @@ weekSelect?.addEventListener("change", async () => {
   weekLabel.textContent = `Week ${selectedWeek}`;
 });
 
-// Safe Auto-load (does NOT block signin) -------------------
-
+// -------------------------------------------------------------
+// Safe Auto-load (runs AFTER sign-in)
+// -------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", async () => {
   try {
-    await loadScoreboardForWeek(selectedWeek ?? 1);
+    const data = await loadScoreboardForWeek(selectedWeek ?? 1);
+    if (!data) return;
+
+    const leagueMeta = data?.fantasy_content?.league?.[0];
+
+    // Populate dropdown only once
+    if (leagueMeta && weekSelect.innerHTML.trim() === "") {
+      populateWeekDropdown(leagueMeta);
+    }
+
+    weekLabel.textContent = `Week ${selectedWeek}`;
+
+    const matchups = extractMatchups(data);
+    if (matchups.length > 0) {
+      renderMatchupCards(matchups);
+      setStatus(`Loaded matchups for Week ${selectedWeek}`);
+    }
+
   } catch {
-    console.warn("Auto-load skipped (not authenticated).");
+    console.warn("Auto-load skipped (not authenticated yet).");
   }
 });
