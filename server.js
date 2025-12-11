@@ -81,7 +81,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD (existing)
+//  SCOREBOARD ROUTE
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
@@ -107,7 +107,35 @@ app.get("/scoreboard", async (req, res) => {
 });
 
 // -----------------------------
-// ⭐ NEW: RAW STANDINGS ROUTE
+// ⭐ OFFICIAL STANDINGS ROUTE (frontend uses this)
+// -----------------------------
+app.get("/standings", async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
+
+    const apiRes = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) {
+      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    }
+
+    res.json(JSON.parse(bodyText));
+
+  } catch (err) {
+    console.error("Standings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league standings" });
+  }
+});
+
+// -----------------------------
+//  DEBUGGING ROUTE — RAW TEXT DUMP
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
   if (!accessToken) {
@@ -121,7 +149,7 @@ app.get("/standings-raw", async (req, res) => {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    const bodyText = await apiRes.text(); // do NOT parse, we want the raw
+    const bodyText = await apiRes.text();
     console.log("Raw standings body returned.");
     res.type("application/json").send(bodyText);
 
