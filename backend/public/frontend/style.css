@@ -447,3 +447,62 @@ body {
   color: var(--text-muted);
 }
 
+/* Right-side stacked layout */
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Standings Panel */
+.standings-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.standings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.standing-row {
+  display: grid;
+  grid-template-columns: 28px 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+}
+
+.stand-rank {
+  font-weight: bold;
+  color: var(--accent-strong);
+}
+
+.stand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.stand-team {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stand-record {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
