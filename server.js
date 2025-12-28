@@ -89,20 +89,25 @@ app.get("/scoreboard", async (req, res) => {
   }
 
   try {
-    const rawWeek = req.query.week;
-    const week =
-      rawWeek && /^\d+$/.test(String(rawWeek)) ? String(parseInt(rawWeek, 10)) : null;
+    const week = req.query.week ? String(req.query.week) : null;
 
-    // Yahoo expects ;week= in the *path*
-    const weekSegment = week ? `;week=${week}` : "";
+    // IMPORTANT: use ;week= and ;include_consolation=1 (modifiers), then ?format=json
+    const modifiers = [
+      week ? `week=${encodeURIComponent(week)}` : null,
+      `include_consolation=1`,
+    ].filter(Boolean).join(";");
 
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSegment}?format=json`;
+    const url =
+      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard` +
+      (modifiers ? `;${modifiers}` : "") +
+      `?format=json`;
 
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
+
     if (!apiRes.ok) {
       console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
       return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
@@ -110,10 +115,11 @@ app.get("/scoreboard", async (req, res) => {
 
     res.json(JSON.parse(bodyText));
   } catch (err) {
-    console.error("Scoreboard error:", err);
+    console.error("Error fetching scoreboard:", err);
     res.status(500).json({ error: "Failed to fetch scoreboard" });
   }
 });
+
 
 
 // -----------------------------
