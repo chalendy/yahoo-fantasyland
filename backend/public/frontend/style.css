@@ -13,6 +13,11 @@
   --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
+
+  /* Standings extras */
+  --good: #25d695;
+  --warn: #ffd166;
+  --row-hover: rgba(255, 255, 255, 0.04);
 }
 
 *,
@@ -99,6 +104,7 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
+  align-items: center;
 }
 
 .status-message {
@@ -153,7 +159,41 @@ body {
   background: rgba(127, 90, 240, 0.22);
 }
 
-/* Layout: matchups + JSON */
+/* Week dropdown (keeps visuals consistent) */
+
+.week-select {
+  appearance: none;
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 8px 36px 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+}
+
+.week-select:hover {
+  background: #1e2236;
+}
+
+.week-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.week-select-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Layout: matchups + right panel (standings/json) */
 
 .layout {
   display: grid;
@@ -162,7 +202,8 @@ body {
 }
 
 .matchups-panel,
-.json-panel {
+.json-panel,
+.standings-panel {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -176,6 +217,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .panel-header h2 {
@@ -205,7 +247,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 600px;
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -263,10 +305,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .team-info-right {
   flex-direction: row-reverse;
+  text-align: right;
 }
 
 .team-logo {
@@ -276,6 +320,7 @@ body {
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.4);
+  flex: 0 0 auto;
 }
 
 .placeholder-logo {
@@ -289,11 +334,17 @@ body {
 .team-name {
   font-size: 0.9rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .team-metadata {
   font-size: 0.75rem;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .team-score {
@@ -325,9 +376,180 @@ body {
   background: #050710;
   color: #e5e5f5;
   font-size: 0.75rem;
-  max-height: 430px;
+  max-height: 520px;
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ----------------------------- */
+/* ✅ Standings styling (Option A) */
+/* ----------------------------- */
+
+.standings-panel .panel-header {
+  margin-bottom: 2px;
+}
+
+.standings-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Container scroll */
+.standings-wrap {
+  max-height: 520px;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(5, 7, 16, 0.45);
+}
+
+/* Works if you render a table */
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.standings-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(16, 19, 34, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 10px;
+  text-align: left;
+  z-index: 2;
+}
+
+.standings-table tbody td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.85rem;
+  vertical-align: middle;
+}
+
+.standings-table tbody tr:hover {
+  background: var(--row-hover);
+}
+
+/* Col sizing helpers */
+.st-col-rank { width: 44px; }
+.st-col-team { width: 260px; }
+.st-col-rec  { width: 90px; }
+.st-col-pf,
+.st-col-pa   { width: 88px; }
+.st-col-stk  { width: 90px; }
+
+/* Team cell layout */
+.st-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.st-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+}
+
+.st-teamname {
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rank pill */
+.rank-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Record badge */
+.record-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(127, 90, 240, 0.12);
+  border: 1px solid rgba(127, 90, 240, 0.22);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.record-pill .pct {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Streak */
+.streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.streak-win {
+  border-color: rgba(37, 214, 149, 0.25);
+  background: rgba(37, 214, 149, 0.10);
+}
+
+.streak-loss {
+  border-color: rgba(255, 77, 79, 0.25);
+  background: rgba(255, 77, 79, 0.10);
+}
+
+/* If you render a DIV list instead of a TABLE */
+.standings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.standings-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 110px 90px 90px 110px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  align-items: center;
+}
+
+.standings-row:hover {
+  background: var(--row-hover);
 }
 
 /* Responsive */
@@ -337,8 +559,13 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .json-panel {
-    max-height: 300px;
+  .json-panel,
+  .standings-panel {
+    max-height: 360px;
+  }
+
+  .standings-wrap {
+    max-height: 360px;
   }
 }
 
@@ -363,146 +590,9 @@ body {
   .team-score {
     font-size: 1.2rem;
   }
-}
 
-/* Standings */
-
-.standings-container {
-  max-height: 430px;
-  overflow: auto;
-}
-
-.standings-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.standings-table th,
-.standings-table td {
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.standings-table th {
-  font-weight: 600;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.standings-team-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.standings-logo {
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Standings */
-#standingsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 430px;
-  overflow-y: auto;
-}
-
-.standings-row {
-  display: flex;
-  justify-content: space-between;
-  background: var(--bg-elevated-soft);
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-}
-
-.standings-team {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.standings-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.standings-record {
-  font-weight: 600;
-}
-
-.standings-pct {
-  margin-left: 6px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Right-side stacked layout */
-.right-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Standings Panel */
-.standings-panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.standings-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.standing-row {
-  display: grid;
-  grid-template-columns: 28px 40px 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-}
-
-.stand-rank {
-  font-weight: bold;
-  color: var(--accent-strong);
-}
-
-.stand-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.stand-team {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.stand-record {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  /* Standings: allow horizontal scroll on small screens */
+  .standings-wrap {
+    overflow-x: auto;
+  }
 }
