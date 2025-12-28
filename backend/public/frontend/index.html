@@ -47,15 +47,16 @@
         <!-- RIGHT SIDE: STANDINGS + JSON (stacked vertically) -->
         <section class="right-side">
           <!-- STANDINGS (Always Visible) -->
-          <section class="standings-panel">
-            <div class="panel-header">
-              <h2>League Standings</h2>
-              <span class="json-pill">Live</span>
-            </div>
-            <div id="standingsContainer" class="standings-grid">
-              <!-- Standings injected here -->
-            </div>
-          </section>
+<section class="standings-panel">
+  <div class="standings-header">
+    <h2>League Standings</h2>
+    <span class="standings-live-pill">Live</span>
+  </div>
+
+  <div id="standingsContainer" class="standings-list">
+    <!-- JS inserts .standings-card here -->
+  </div>
+</section>
 
           <!-- JSON PANEL -->
           <section class="json-panel">
