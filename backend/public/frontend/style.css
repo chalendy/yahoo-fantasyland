@@ -99,7 +99,6 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
-  align-items: center;
 }
 
 .status-message {
@@ -163,7 +162,6 @@ body {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  cursor: pointer;
 }
 
 /* Layout: matchups + right side */
@@ -184,6 +182,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .panel-header {
@@ -213,30 +217,21 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-/* Right side stack */
-.right-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-}
-
 /* Matchups */
 
 .matchups-grid {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 520px;
+  max-height: 480px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .matchup-card {
-  background:
-    radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-    radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
-    var(--bg-elevated-soft);
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
+              var(--bg-elevated-soft);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   padding: 10px 12px 10px;
@@ -339,11 +334,29 @@ body {
   font-size: 0.8rem;
 }
 
-/* Standings header */
+/* JSON output */
+
+.json-output {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: #050710;
+  color: #e5e5f5;
+  font-size: 0.75rem;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* -------------------------
+   STANDINGS (ULTRA-COMPACT)
+-------------------------- */
+
 .standings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .standings-header h2 {
@@ -359,26 +372,52 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-/* ✅ Ultra-compact standings list */
+.standings-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.standings-sort-select {
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  outline: none;
+}
+
+.standings-sort-dir {
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .standings-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 320px;
+  max-height: 360px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
-/* Each row is compact and NOT using matchup-card */
+/* Each row is a compact pill-like card */
 .standings-row {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 7px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.03);
 }
 
 .standings-left {
@@ -399,45 +438,48 @@ body {
 }
 
 .standings-logo--placeholder {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255,255,255,0.08);
 }
 
-.standings-text {
+.standings-name-wrap {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
-.standings-line1 {
+.standings-name-line {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
 .standings-rank {
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   opacity: 0.9;
   flex: 0 0 auto;
 }
 
-.standings-team {
+.standings-name {
   font-weight: 700;
   font-size: 0.82rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
 }
 
-.standings-line2 {
+.standings-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.standings-dot {
+  opacity: 0.7;
 }
 
 .standings-right {
@@ -446,9 +488,9 @@ body {
 }
 
 .standings-pf {
-  font-weight: 900;
-  font-size: 0.9rem;
-  line-height: 1.05;
+  font-weight: 800;
+  font-size: 0.85rem;
+  line-height: 1.0;
 }
 
 .standings-pf-label {
@@ -457,25 +499,11 @@ body {
 }
 
 .standings-empty {
-  padding: 8px 10px;
+  padding: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  border: 1px dashed var(--border-subtle);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-/* JSON output */
-
-.json-output {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  background: #050710;
-  color: #e5e5f5;
-  font-size: 0.75rem;
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
 }
 
 /* Responsive */
@@ -485,16 +513,12 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .right-side {
-    gap: 12px;
+  .json-panel {
+    max-height: 300px;
   }
 
   .standings-list {
-    max-height: 280px;
-  }
-
-  .json-output {
-    max-height: 280px;
+    max-height: 320px;
   }
 }
 
@@ -518,9 +542,5 @@ body {
 
   .team-score {
     font-size: 1.2rem;
-  }
-
-  .standings-team {
-    max-width: 200px;
   }
 }
