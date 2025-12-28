@@ -474,27 +474,21 @@ body {
   }
 }
 
-/* -----------------------------
-   Standings (compact)
------------------------------- */
+/* ------------------------------
+   Standings: ULTRA COMPACT
+   ------------------------------ */
 
-.standings-empty {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  padding: 10px 6px;
-}
-
-.standings-grid {
+.standings-compact {
   display: flex;
   flex-direction: column;
-  gap: 8px;              /* tighter than before */
+  gap: 6px;                 /* tighter spacing */
 }
 
-.standings-card {
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 8px 10px;     /* tighter padding */
+.standings-row {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 8px 10px;        /* smaller padding */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -504,22 +498,29 @@ body {
 .standings-left {
   display: flex;
   align-items: center;
-  gap: 8px;              /* tighter */
+  gap: 8px;                 /* tighter */
   min-width: 0;
 }
 
 .standings-logo {
-  width: 30px;           /* smaller logo */
-  height: 30px;
+  width: 28px;              /* smaller logo */
+  height: 28px;
   border-radius: 999px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(0, 0, 0, 0.35);
   flex: 0 0 auto;
 }
 
+.standings-logo--placeholder {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .standings-text {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;                 /* tighter */
 }
 
 .standings-topline {
@@ -531,51 +532,44 @@ body {
 
 .standings-rank {
   font-weight: 800;
-  font-size: 0.85rem;    /* smaller */
-  opacity: 0.92;
+  font-size: 0.78rem;       /* smaller */
+  opacity: 0.9;
 }
 
-.standings-team {
+.standings-name {
   font-weight: 700;
-  font-size: 0.9rem;     /* smaller */
+  font-size: 0.82rem;       /* smaller */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 260px;
 }
 
-.standings-subline {
-  margin-top: 2px;
+.standings-sub {
+  font-size: 0.72rem;       /* smaller */
+  color: rgba(255, 255, 255, 0.62);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;    /* smaller */
-  color: rgba(255, 255, 255, 0.65);
 }
 
 .standings-dot {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .standings-right {
   text-align: right;
   flex: 0 0 auto;
-}
-
-.standings-pf {
-  font-weight: 800;
-  font-size: 0.95rem;    /* smaller PF number */
   line-height: 1.05;
 }
 
-.standings-pf-label {
-  font-size: 0.7rem;     /* smaller label */
-  color: rgba(255, 255, 255, 0.6);
+.standings-pf {
+  font-weight: 900;
+  font-size: 0.9rem;        /* smaller */
 }
 
-/* Mobile tweaks */
-@media (max-width: 600px) {
-  .standings-team {
-    max-width: 180px;
-  }
+.standings-pf-label {
+  font-size: 0.65rem;       /* smaller */
+  color: rgba(255, 255, 255, 0.58);
+  margin-top: 2px;
 }
