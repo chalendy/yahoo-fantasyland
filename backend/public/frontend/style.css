@@ -490,3 +490,30 @@ body {
     font-size: 1.2rem;
   }
 }
+
+.standings-controls{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+.standings-sort-btn{
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor:pointer;
+}
+.standings-sort-btn.active{
+  border-color: rgba(255,142,60,0.35);
+  background: rgba(255,142,60,0.14);
+  color: #ff8e3c;
+}
+.standings-sort-dir{
+  margin-left:auto;
+  opacity:0.65;
+  font-size:0.8rem;
+}
