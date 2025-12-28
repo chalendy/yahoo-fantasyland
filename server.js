@@ -15,6 +15,8 @@ const __dirname = path.dirname(__filename);
 // --- ENV ---
 const CLIENT_ID = process.env.YAHOO_CLIENT_ID;
 const CLIENT_SECRET = process.env.YAHOO_CLIENT_SECRET;
+
+// IMPORTANT: must exactly match your Yahoo app redirect URI
 const REDIRECT_URI = "https://yh-fantasyland.onrender.com/auth/callback";
 
 // League Info
@@ -22,7 +24,7 @@ const LEAGUE_ID = "38076";
 const GAME_KEY = "nfl";
 const LEAGUE_KEY = `${GAME_KEY}.l.${LEAGUE_ID}`;
 
-// Token storage (simple)
+// Token storage (simple demo)
 let accessToken = null;
 
 // -----------------------------
@@ -44,15 +46,13 @@ app.get("/auth/start", (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
 
-  if (!code) {
-    return res.status(400).send("Missing authorization code.");
-  }
+  if (!code) return res.status(400).send("Missing authorization code.");
 
   try {
     const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
       method: "POST",
       headers: {
-        "Authorization":
+        Authorization:
           "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
         "Content-Type": "application/x-www-form-urlencoded",
       },
@@ -81,26 +81,19 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD (supports ?week=)
+//  SCOREBOARD (supports week)
+//  Yahoo uses ;week=N (NOT ?week=N)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
   }
 
+  const week = req.query.week ? String(req.query.week) : null;
+
   try {
-    const week = req.query.week ? String(req.query.week) : null;
-
-    // IMPORTANT: use ;week= and ;include_consolation=1 (modifiers), then ?format=json
-    const modifiers = [
-      week ? `week=${encodeURIComponent(week)}` : null,
-      `include_consolation=1`,
-    ].filter(Boolean).join(";");
-
-    const url =
-      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard` +
-      (modifiers ? `;${modifiers}` : "") +
-      `?format=json`;
+    const weekPart = week ? `;week=${encodeURIComponent(week)}` : "";
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekPart}?format=json`;
 
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -110,48 +103,22 @@ app.get("/scoreboard", async (req, res) => {
 
     if (!apiRes.ok) {
       console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
-      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+      return res.status(500).json({
+        error: "Yahoo API error",
+        status: apiRes.status,
+        body: bodyText,
+      });
     }
 
     res.json(JSON.parse(bodyText));
   } catch (err) {
-    console.error("Error fetching scoreboard:", err);
+    console.error("Scoreboard error:", err);
     res.status(500).json({ error: "Failed to fetch scoreboard" });
   }
 });
 
-
-
 // -----------------------------
-// ⭐ OFFICIAL STANDINGS ROUTE (frontend uses this)
-// -----------------------------
-app.get("/standings", async (req, res) => {
-  if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated." });
-  }
-
-  try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
-
-    const apiRes = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    const bodyText = await apiRes.text();
-    if (!apiRes.ok) {
-      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
-    }
-
-    res.json(JSON.parse(bodyText));
-
-  } catch (err) {
-    console.error("Standings fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch league standings" });
-  }
-});
-
-// -----------------------------
-//  DEBUGGING ROUTE — RAW TEXT DUMP
+//  STANDINGS (raw)
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
   if (!accessToken) {
@@ -166,9 +133,17 @@ app.get("/standings-raw", async (req, res) => {
     });
 
     const bodyText = await apiRes.text();
-    console.log("Raw standings body returned.");
-    res.type("application/json").send(bodyText);
 
+    if (!apiRes.ok) {
+      console.error("Yahoo standings error:", apiRes.status, bodyText);
+      return res.status(500).json({
+        error: "Yahoo API error",
+        status: apiRes.status,
+        body: bodyText,
+      });
+    }
+
+    res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Standings fetch error:", err);
     res.status(500).json({ error: "Failed to fetch league standings" });
