@@ -13,11 +13,6 @@
   --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
-
-  /* Standings extras */
-  --good: #25d695;
-  --warn: #ffd166;
-  --row-hover: rgba(255, 255, 255, 0.04);
 }
 
 *,
@@ -104,7 +99,6 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
-  align-items: center;
 }
 
 .status-message {
@@ -159,41 +153,7 @@ body {
   background: rgba(127, 90, 240, 0.22);
 }
 
-/* Week dropdown (keeps visuals consistent) */
-
-.week-select {
-  appearance: none;
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  padding: 8px 36px 8px 14px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  position: relative;
-  outline: none;
-}
-
-.week-select:hover {
-  background: #1e2236;
-}
-
-.week-select-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.week-select-wrap::after {
-  content: "▾";
-  position: absolute;
-  right: 14px;
-  pointer-events: none;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-/* Layout: matchups + right panel (standings/json) */
+/* Layout: matchups + right panel */
 
 .layout {
   display: grid;
@@ -217,7 +177,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
 }
 
 .panel-header h2 {
@@ -247,7 +206,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 520px;
+  max-height: 480px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -285,8 +244,6 @@ body {
   color: var(--text-muted);
 }
 
-/* Body layout */
-
 .matchup-body {
   display: grid;
   grid-template-columns: minmax(0, 6fr) auto minmax(0, 6fr);
@@ -305,12 +262,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
 .team-info-right {
   flex-direction: row-reverse;
-  text-align: right;
 }
 
 .team-logo {
@@ -320,7 +275,6 @@ body {
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.4);
-  flex: 0 0 auto;
 }
 
 .placeholder-logo {
@@ -334,25 +288,17 @@ body {
 .team-name {
   font-size: 0.9rem;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .team-metadata {
   font-size: 0.75rem;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .team-score {
   font-size: 1.4rem;
   font-weight: 700;
 }
-
-/* VS middle column */
 
 .vs-column {
   display: flex;
@@ -367,7 +313,7 @@ body {
   font-size: 0.8rem;
 }
 
-/* JSON output */
+/* JSON output (if you still show it anywhere) */
 
 .json-output {
   margin: 0;
@@ -376,86 +322,65 @@ body {
   background: #050710;
   color: #e5e5f5;
   font-size: 0.75rem;
-  max-height: 520px;
+  max-height: 430px;
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* ----------------------------- */
-/* ✅ Standings styling (Option A) */
-/* ----------------------------- */
+/* -----------------------------------------
+   ✅ Standings (smaller + tighter)
+----------------------------------------- */
 
-.standings-panel .panel-header {
-  margin-bottom: 2px;
-}
-
-.standings-subtitle {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Container scroll */
 .standings-wrap {
-  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 430px;
   overflow: auto;
+  padding-right: 4px;
+}
+
+.standings-header-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 42px 42px 64px;
+  gap: 8px;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(5, 7, 16, 0.45);
-}
-
-/* Works if you render a table */
-.standings-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 520px;
-}
-
-.standings-table thead th {
-  position: sticky;
-  top: 0;
-  background: rgba(16, 19, 34, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.70rem;
   color: var(--text-muted);
-  padding: 10px 10px;
-  text-align: left;
-  z-index: 2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.standings-table tbody td {
-  padding: 10px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.85rem;
-  vertical-align: middle;
+.standings-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 42px 42px 64px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;              /* tighter */
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-soft);
+  border: 1px solid rgba(255, 255, 255, 0.06); /* slightly lighter */
 }
 
-.standings-table tbody tr:hover {
-  background: var(--row-hover);
+.standings-rank {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
-/* Col sizing helpers */
-.st-col-rank { width: 44px; }
-.st-col-team { width: 260px; }
-.st-col-rec  { width: 90px; }
-.st-col-pf,
-.st-col-pa   { width: 88px; }
-.st-col-stk  { width: 90px; }
-
-/* Team cell layout */
-.st-team {
+.standings-team {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
-.st-logo {
-  width: 26px;
-  height: 26px;
+.standings-logo {
+  width: 22px;                   /* smaller logo */
+  height: 22px;
   border-radius: 999px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -463,93 +388,40 @@ body {
   flex: 0 0 auto;
 }
 
-.st-teamname {
-  font-weight: 650;
+.standings-name {
+  font-size: 0.82rem;            /* smaller text */
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.st-sub {
-  font-size: 0.75rem;
+.standings-meta {
+  font-size: 0.72rem;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.1;
 }
 
-/* Rank pill */
-.rank-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Record badge */
-.record-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(127, 90, 240, 0.12);
-  border: 1px solid rgba(127, 90, 240, 0.22);
+.standings-w,
+.standings-l {
+  font-size: 0.80rem;
+  text-align: center;
   color: var(--text);
-  font-size: 0.8rem;
 }
 
-.record-pill .pct {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-/* Streak */
-.streak-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
+.standings-pf {
   font-size: 0.78rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text);
+  text-align: right;
+  color: var(--text-muted);
 }
 
-.streak-win {
-  border-color: rgba(37, 214, 149, 0.25);
-  background: rgba(37, 214, 149, 0.10);
-}
-
-.streak-loss {
-  border-color: rgba(255, 77, 79, 0.25);
-  background: rgba(255, 77, 79, 0.10);
-}
-
-/* If you render a DIV list instead of a TABLE */
-.standings-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.standings-row {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 110px 90px 90px 110px;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  align-items: center;
-}
-
-.standings-row:hover {
-  background: var(--row-hover);
+/* Highlight current user’s team (optional if you add class) */
+.standings-row.is-me {
+  border-color: rgba(127, 90, 240, 0.35);
+  background:
+    radial-gradient(circle at top left, rgba(127, 90, 240, 0.16), transparent 55%),
+    var(--bg-elevated-soft);
 }
 
 /* Responsive */
@@ -561,11 +433,7 @@ body {
 
   .json-panel,
   .standings-panel {
-    max-height: 360px;
-  }
-
-  .standings-wrap {
-    max-height: 360px;
+    max-height: 300px;
   }
 }
 
@@ -591,8 +459,13 @@ body {
     font-size: 1.2rem;
   }
 
-  /* Standings: allow horizontal scroll on small screens */
-  .standings-wrap {
-    overflow-x: auto;
+  /* Standings: reduce columns for mobile */
+  .standings-header-row,
+  .standings-row {
+    grid-template-columns: 30px 1fr 42px 42px;
+  }
+
+  .standings-pf {
+    display: none;
   }
 }
