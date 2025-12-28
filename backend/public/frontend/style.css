@@ -1,6 +1,4 @@
-/* =========================
-   Global theme + layout
-   ========================= */
+/* Global layout */
 
 :root {
   --bg: #060714;
@@ -33,9 +31,7 @@ body {
   color: var(--text);
 }
 
-/* =========================
-   App shell
-   ========================= */
+/* App shell */
 
 .app-shell {
   min-height: 100vh;
@@ -78,9 +74,7 @@ body {
   color: var(--text-muted);
 }
 
-/* =========================
-   Controls
-   ========================= */
+/* Controls */
 
 .controls-card {
   background: var(--bg-elevated);
@@ -114,26 +108,7 @@ body {
   color: var(--accent-strong);
 }
 
-/* Week dropdown */
-.week-dropdown {
-  appearance: none;
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.week-dropdown:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(127, 90, 240, 0.25);
-}
-
-/* =========================
-   Buttons
-   ========================= */
+/* Buttons */
 
 .btn {
   border-radius: 999px;
@@ -179,9 +154,24 @@ body {
   background: rgba(127, 90, 240, 0.22);
 }
 
-/* =========================
-   Main layout
-   ========================= */
+/* Week dropdown */
+
+.week-dropdown {
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.week-dropdown:focus {
+  border-color: rgba(127, 90, 240, 0.6);
+  box-shadow: 0 0 0 3px rgba(127, 90, 240, 0.18);
+}
+
+/* Layout: matchups + right side */
 
 .layout {
   display: grid;
@@ -189,17 +179,8 @@ body {
   gap: 16px;
 }
 
-/* Right side column (Standings + JSON stacked) */
-.right-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-}
-
 .matchups-panel,
-.json-panel,
-.standings-panel {
+.json-panel {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -236,9 +217,16 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-/* =========================
-   Matchups list
-   ========================= */
+/* Right side stack (standings + json) */
+
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Matchups */
 
 .matchups-grid {
   display: flex;
@@ -250,10 +238,9 @@ body {
 }
 
 .matchup-card {
-  background:
-    radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-    radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
-    var(--bg-elevated-soft);
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
+              var(--bg-elevated-soft);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   padding: 10px 12px 10px;
@@ -275,16 +262,17 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* Tag pill (used for playoffs labels too) */
 .matchup-tag {
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 0.7rem;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
 /* Body layout */
+
 .matchup-body {
   display: grid;
   grid-template-columns: minmax(0, 6fr) auto minmax(0, 6fr);
@@ -317,6 +305,7 @@ body {
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.4);
+  flex: 0 0 auto;
 }
 
 .placeholder-logo {
@@ -333,15 +322,12 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  max-width: 260px;
 }
 
 .team-metadata {
   font-size: 0.75rem;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .team-score {
@@ -350,6 +336,7 @@ body {
 }
 
 /* VS middle column */
+
 .vs-column {
   display: flex;
   align-items: center;
@@ -363,9 +350,34 @@ body {
   font-size: 0.8rem;
 }
 
-/* =========================
-   Standings (Ultra compact)
-   ========================= */
+/* JSON output */
+
+.json-output {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: #050710;
+  color: #e5e5f5;
+  font-size: 0.75rem;
+  max-height: 430px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* -----------------------------
+   STANDINGS (ULTRA-COMPACT)
+----------------------------- */
+
+.standings-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
 
 .standings-header {
   display: flex;
@@ -381,129 +393,78 @@ body {
 
 .standings-live-pill {
   font-size: 0.72rem;
-  color: var(--text-muted);
-  border-radius: 999px;
-  padding: 3px 8px;
+  color: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--border-subtle);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
 }
 
-/* Container */
+/* The container itself (so it never "disappears") */
 .standings-list {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* tighter */
-  max-height: 430px;
+  gap: 8px;
+  padding-right: 2px;
+  max-height: 360px;
   overflow: auto;
-  padding-right: 4px;
+  border-radius: var(--radius-md);
 }
 
-/* IMPORTANT:
-   Your standings rows are currently being rendered as ".matchup-card".
-   So we override ONLY inside standings-list to make them compact,
-   without affecting matchup cards on the left. */
+/* If your JS is currently re-using .matchup-card for standings rows,
+   this overrides only those inside standings to be compact. */
 .standings-list .matchup-card {
-  padding: 8px 10px !important; /* ultra-compact */
-  gap: 6px;
+  padding: 8px 10px !important;
+  gap: 6px !important;
   border-radius: 12px;
 }
 
-/* Compact everything inside those standings cards */
+/* Reduce logo size inside standings */
 .standings-list img {
   width: 28px !important;
   height: 28px !important;
+  border-radius: 999px;
 }
 
+/* Tighten text sizes inside standings (covers the inline styles somewhat) */
 .standings-list .matchup-card * {
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
-/* If your JS uses these classes, they'll apply too (future-safe) */
-.standings-card {
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 8px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+/* Make sure the standings list items don't look like giant matchup cards */
+.standings-panel .matchup-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
 }
 
-.standings-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+/* Optional: make PF number smaller if it exists in a strong/bold node */
+.standings-list .matchup-card [style*="font-size:1.05rem"] {
+  font-size: 0.92rem !important;
 }
 
-.standings-rank {
-  font-weight: 800;
-  font-size: 0.82rem;
-  opacity: 0.9;
-  width: 34px;
-  flex: 0 0 auto;
+.standings-list .matchup-card [style*="font-size:0.78rem"] {
+  font-size: 0.72rem !important;
 }
 
-.standings-name {
-  font-weight: 700;
-  font-size: 0.86rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.standings-list .matchup-card [style*="font-size:0.75rem"] {
+  font-size: 0.70rem !important;
 }
 
-.standings-meta {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 2px;
-}
-
-.standings-right {
-  text-align: right;
-  flex: 0 0 auto;
-}
-
-.standings-pf {
-  font-weight: 800;
-  font-size: 0.9rem;
-}
-
-.standings-pf-label {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* =========================
-   JSON output
-   ========================= */
-
-.json-output {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  background: #050710;
-  color: #e5e5f5;
-  font-size: 0.75rem;
-  max-height: 430px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* =========================
+/* -----------------------------
    Responsive
-   ========================= */
+----------------------------- */
 
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .standings-list {
-    max-height: 320px;
+  .json-panel {
+    max-height: 300px;
   }
 
-  .json-output {
-    max-height: 280px;
+  .standings-list {
+    max-height: 320px;
   }
 }
 
@@ -521,7 +482,15 @@ body {
     justify-content: flex-start;
   }
 
+  .team-column {
+    justify-content: space-between;
+  }
+
   .team-score {
     font-size: 1.2rem;
+  }
+
+  .team-name {
+    max-width: 100%;
   }
 }
