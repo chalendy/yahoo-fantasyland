@@ -13,6 +13,13 @@
   --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
+
+  /* Compact knobs for standings */
+  --stand-row-pad-y: 7px;
+  --stand-row-pad-x: 10px;
+  --stand-logo: 28px;
+  --stand-font: 0.82rem;
+  --stand-subfont: 0.72rem;
 }
 
 *,
@@ -36,6 +43,7 @@ body {
 .app-shell {
   min-height: 100vh;
   max-width: 1200px;
+ 
   margin: 0 auto;
   padding: 24px 16px 32px;
   display: flex;
@@ -153,7 +161,7 @@ body {
   background: rgba(127, 90, 240, 0.22);
 }
 
-/* Layout: matchups + right panel */
+/* Layout: matchups + side panel */
 
 .layout {
   display: grid;
@@ -176,6 +184,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .panel-header h2 {
@@ -316,7 +325,7 @@ body {
   font-size: 0.8rem;
 }
 
-/* Right panel content */
+/* JSON output (still used as debug if present) */
 
 .json-output {
   margin: 0;
@@ -330,113 +339,122 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* ------------------------------------------------------------
-   COMPACT STANDINGS (Option C)
-   Applies to many possible standings markups.
------------------------------------------------------------- */
+/* -----------------------------
+   Standings (ULTRA COMPACT)
+------------------------------ */
 
-#standingsContainer,
-.standings-container,
-.standings-panel {
-  /* leave your layout alone; this just ensures inner content behaves */
-}
-
-#standingsContainer :where(.standing-card, .standings-card, .standings-row, .standing-row, .team-row, li),
-.standings-container :where(.standing-card, .standings-card, .standings-row, .standing-row, .team-row, li) {
-  padding: 6px 8px !important;
-  border-radius: 10px !important;
-  gap: 8px !important;
-  min-height: unset !important;
-}
-
-#standingsContainer :where(.standing-card, .standings-card),
-.standings-container :where(.standing-card, .standings-card) {
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-}
-
-#standingsContainer :where(.standing-rank, .rank),
-.standings-container :where(.standing-rank, .rank) {
-  font-size: 0.75rem !important;
-  color: var(--text-muted) !important;
-  min-width: 22px;
-}
-
-#standingsContainer :where(.standing-name, .team-name, .name),
-.standings-container :where(.standing-name, .team-name, .name) {
-  font-size: 0.82rem !important;
-  font-weight: 600 !important;
-  line-height: 1.15 !important;
-}
-
-#standingsContainer :where(.standing-meta, .meta, .record, .points),
-.standings-container :where(.standing-meta, .meta, .record, .points) {
-  font-size: 0.72rem !important;
-  color: var(--text-muted) !important;
-  line-height: 1.15 !important;
-}
-
-#standingsContainer :where(img, .standing-logo, .team-logo),
-.standings-container :where(img, .standing-logo, .team-logo) {
-  width: 22px !important;
-  height: 22px !important;
-  border-radius: 999px !important;
-}
-
-#standingsContainer :where(.standing-stats, .stats, .right),
-.standings-container :where(.standing-stats, .stats, .right) {
-  font-size: 0.75rem !important;
-}
-
-#standingsContainer :where(.standings-list, ul),
-.standings-container :where(.standings-list, ul) {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.standings-list {
+  /* This is your container in index.html */
   display: flex;
   flex-direction: column;
-  gap: 6px; /* tighter spacing */
+  gap: 8px;
+  max-height: 430px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
-/* If standings is rendered as a table */
-#standingsContainer table,
-.standings-container table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 6px; /* space between rows */
-  font-size: 0.78rem;
+.standings-list-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-#standingsContainer th,
-#standingsContainer td,
-.standings-container th,
-.standings-container td {
-  padding: 6px 8px;
-}
-
-#standingsContainer thead th,
-.standings-container thead th {
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.72rem;
-}
-
-#standingsContainer tbody tr,
-.standings-container tbody tr {
+.standings-row {
   background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--stand-row-pad-y) var(--stand-row-pad-x);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-#standingsContainer tbody td:first-child,
-.standings-container tbody td:first-child {
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
+.standings-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-#standingsContainer tbody td:last-child,
-.standings-container tbody td:last-child {
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
+.standings-logo {
+  width: var(--stand-logo);
+  height: var(--stand-logo);
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+}
+
+.standings-logo--placeholder {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.standings-text {
+  min-width: 0;
+}
+
+.standings-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.standings-rank {
+  font-weight: 800;
+  font-size: var(--stand-font);
+  opacity: 0.95;
+  flex: 0 0 auto;
+}
+
+.standings-team {
+  font-weight: 750;
+  font-size: var(--stand-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.standings-line2 {
+  margin-top: 1px;
+  font-size: var(--stand-subfont);
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.standings-dot {
+  opacity: 0.6;
+}
+
+.standings-right {
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.standings-pf {
+  font-weight: 900;
+  font-size: 0.95rem; /* compact */
+  line-height: 1.1;
+}
+
+.standings-pf-label {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
+}
+
+.empty-state {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85rem;
 }
 
 /* Responsive */
@@ -472,104 +490,8 @@ body {
   .team-score {
     font-size: 1.2rem;
   }
-}
 
-/* ------------------------------
-   Standings: ULTRA COMPACT
-   ------------------------------ */
-
-.standings-compact {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;                 /* tighter spacing */
-}
-
-.standings-row {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 8px 10px;        /* smaller padding */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.standings-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;                 /* tighter */
-  min-width: 0;
-}
-
-.standings-logo {
-  width: 28px;              /* smaller logo */
-  height: 28px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.35);
-  flex: 0 0 auto;
-}
-
-.standings-logo--placeholder {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.standings-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;                 /* tighter */
-}
-
-.standings-topline {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-}
-
-.standings-rank {
-  font-weight: 800;
-  font-size: 0.78rem;       /* smaller */
-  opacity: 0.9;
-}
-
-.standings-name {
-  font-weight: 700;
-  font-size: 0.82rem;       /* smaller */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 260px;
-}
-
-.standings-sub {
-  font-size: 0.72rem;       /* smaller */
-  color: rgba(255, 255, 255, 0.62);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.standings-dot {
-  opacity: 0.7;
-}
-
-.standings-right {
-  text-align: right;
-  flex: 0 0 auto;
-  line-height: 1.05;
-}
-
-.standings-pf {
-  font-weight: 900;
-  font-size: 0.9rem;        /* smaller */
-}
-
-.standings-pf-label {
-  font-size: 0.65rem;       /* smaller */
-  color: rgba(255, 255, 255, 0.58);
-  margin-top: 2px;
+  .standings-team {
+    max-width: 200px;
+  }
 }
