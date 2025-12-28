@@ -244,6 +244,8 @@ body {
   color: var(--text-muted);
 }
 
+/* Body layout */
+
 .matchup-body {
   display: grid;
   grid-template-columns: minmax(0, 6fr) auto minmax(0, 6fr);
@@ -300,6 +302,8 @@ body {
   font-weight: 700;
 }
 
+/* VS middle column */
+
 .vs-column {
   display: flex;
   align-items: center;
@@ -313,7 +317,7 @@ body {
   font-size: 0.8rem;
 }
 
-/* JSON output (if you still show it anywhere) */
+/* JSON output (if you still use it anywhere) */
 
 .json-output {
   margin: 0;
@@ -327,48 +331,55 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* -----------------------------------------
-   ✅ Standings (smaller + tighter)
------------------------------------------ */
+/* =========================================================
+   Standings (COMPACT VERSION)
+   ========================================================= */
 
 .standings-wrap {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 430px;
+  max-height: 480px;
   overflow: auto;
   padding-right: 4px;
 }
 
-.standings-header-row {
+/* Optional header row (if your app.js renders one) */
+.standings-header {
   display: grid;
-  grid-template-columns: 36px 1fr 42px 42px 64px;
+  grid-template-columns: 30px 1fr 64px 64px;
   gap: 8px;
+  align-items: center;
   padding: 6px 8px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.70rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
+/* Each standings row */
 .standings-row {
   display: grid;
-  grid-template-columns: 36px 1fr 42px 42px 64px;
+  grid-template-columns: 30px 1fr 64px 64px;
   gap: 8px;
   align-items: center;
-  padding: 6px 8px;              /* tighter */
-  border-radius: var(--radius-md);
+  padding: 6px 8px;              /* smaller padding */
+  border-radius: 12px;           /* slightly smaller corner */
   background: var(--bg-elevated-soft);
-  border: 1px solid rgba(255, 255, 255, 0.06); /* slightly lighter */
+  border: 1px solid var(--border-subtle);
+  font-size: 0.78rem;            /* smaller overall font */
+  line-height: 1.15;
 }
 
 .standings-rank {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--text);
   text-align: center;
+  font-size: 0.78rem;
+  opacity: 0.95;
 }
 
 .standings-team {
@@ -388,40 +399,50 @@ body {
   flex: 0 0 auto;
 }
 
-.standings-name {
-  font-size: 0.82rem;            /* smaller text */
-  font-weight: 600;
-  line-height: 1.1;
+.standings-team-name {
+  font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.standings-meta {
-  font-size: 0.72rem;
+.standings-sub {
+  margin-top: 2px;
+  font-size: 0.72rem;            /* smaller subtext */
   color: var(--text-muted);
-  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.standings-w,
-.standings-l {
-  font-size: 0.80rem;
-  text-align: center;
+.standings-record,
+.standings-pf {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 
-.standings-pf {
+.standings-record {
+  font-weight: 650;
   font-size: 0.78rem;
-  text-align: right;
-  color: var(--text-muted);
 }
 
-/* Highlight current user’s team (optional if you add class) */
-.standings-row.is-me {
-  border-color: rgba(127, 90, 240, 0.35);
-  background:
-    radial-gradient(circle at top left, rgba(127, 90, 240, 0.16), transparent 55%),
-    var(--bg-elevated-soft);
+.standings-pf {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+/* Small “pill” badges if you render any (seed, streak, etc.) */
+.standings-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;              /* smaller pill */
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
 }
 
 /* Responsive */
@@ -433,7 +454,7 @@ body {
 
   .json-panel,
   .standings-panel {
-    max-height: 300px;
+    max-height: 320px;
   }
 }
 
@@ -459,13 +480,11 @@ body {
     font-size: 1.2rem;
   }
 
-  /* Standings: reduce columns for mobile */
-  .standings-header-row,
+  /* Standings even tighter on mobile */
+  .standings-header,
   .standings-row {
-    grid-template-columns: 30px 1fr 42px 42px;
-  }
-
-  .standings-pf {
-    display: none;
+    grid-template-columns: 26px 1fr 56px 56px;
+    gap: 6px;
+    padding: 6px 7px;
   }
 }
