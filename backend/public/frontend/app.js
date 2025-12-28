@@ -14,6 +14,9 @@ const statusMessage = document.getElementById("statusMessage");
 const weekLabel = document.getElementById("weekLabel");
 const weekSelect = document.getElementById("weekSelect");
 
+// ---------- Config ----------
+const PLAYOFF_START_WEEK = 15; // your league: playoffs start week 15
+
 // ---------- State ----------
 let scoreboardData = null;
 let standingsData = null;
@@ -28,17 +31,10 @@ function setStatus(msg) {
   if (statusMessage) statusMessage.textContent = msg || "";
 }
 
-function safeText(el, value) {
-  if (!el) return;
-  el.textContent = value ?? "";
-}
-
 function pluckField(objArray, key) {
   if (!Array.isArray(objArray)) return null;
   for (const entry of objArray) {
-    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
-      return entry[key];
-    }
+    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) return entry[key];
   }
   return null;
 }
@@ -48,11 +44,13 @@ function toNum(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function asBool01(v) {
-  // Yahoo often uses "0"/"1"
-  if (v === 1 || v === "1") return true;
-  if (v === 0 || v === "0") return false;
-  return !!v;
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 // ---------- OAuth ----------
@@ -78,6 +76,16 @@ function buildWeekOptions({ startWeek, endWeek, selectedWeek }) {
     if (String(w) === String(selectedWeek)) opt.selected = true;
     weekSelect.appendChild(opt);
   }
+}
+
+function ensureWeekSelected(week) {
+  if (!weekSelect) return;
+  if (!week) return;
+
+  // If options exist, set selected value (don’t rely on initial build only)
+  const target = String(week);
+  const has = Array.from(weekSelect.options).some((o) => o.value === target);
+  if (has) weekSelect.value = target;
 }
 
 function getSelectedWeekOrNull() {
@@ -127,11 +135,8 @@ async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups
 
       if (jsonOutput) jsonOutput.textContent = `Error: ${res.status}\n${text}`;
 
-      if (res.status === 401) {
-        setStatus("Not authenticated. Click “Sign In with Yahoo” first.");
-      } else {
-        setStatus("Failed to load scoreboard.");
-      }
+      if (res.status === 401) setStatus("Not authenticated. Click “Sign In with Yahoo” first.");
+      else setStatus("Failed to load scoreboard.");
       return;
     }
 
@@ -143,12 +148,9 @@ async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups
     const meta = getLeagueMetaFromScoreboard(data);
     const shownWeek = getScoreboardWeek(data) ?? meta.current_week;
 
-    // Fill the week label in the header
-    if (weekLabel && shownWeek != null) {
-      weekLabel.textContent = `Week ${shownWeek}`;
-    }
+    if (weekLabel && shownWeek != null) weekLabel.textContent = `Week ${shownWeek}`;
 
-    // Populate week dropdown if needed (and keep current selection)
+    // Populate dropdown if empty, otherwise ensure it reflects current week selection
     if (weekSelect && weekSelect.options.length === 0) {
       buildWeekOptions({
         startWeek: meta.start_week,
@@ -156,17 +158,16 @@ async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups
         selectedWeek: shownWeek,
       });
     }
+    ensureWeekSelected(shownWeek);
 
-    // Render matchups if requested
     if (renderMatchups) {
       const matchups = extractMatchups(data);
+
       if (!matchups.length) {
         setStatus("No matchups found for this week.");
         if (matchupsContainer) matchupsContainer.innerHTML = "";
       } else {
-        renderMatchupCards(matchups, {
-          endWeek: meta.end_week,
-        });
+        renderMatchupsGrouped(matchups);
         setStatus(`Loaded ${matchups.length} matchups.`);
       }
     } else {
@@ -188,7 +189,6 @@ async function loadStandings() {
     if (!res.ok) {
       const text = await res.text();
       console.error("Standings error:", res.status, text);
-
       standingsContainer.innerHTML = `<div class="standings-empty">Error loading standings.</div>`;
       return;
     }
@@ -216,8 +216,7 @@ async function loadStandings() {
 // ---------- Scoreboard Parsing ----------
 function getLeagueMetaFromScoreboard(data) {
   const leagueArr = data?.fantasy_content?.league;
-  const meta = Array.isArray(leagueArr) ? leagueArr[0] : {};
-  return meta || {};
+  return (Array.isArray(leagueArr) ? leagueArr[0] : {}) || {};
 }
 
 function getScoreboardWeek(data) {
@@ -228,8 +227,7 @@ function getScoreboardWeek(data) {
 
 function extractMatchups(data) {
   try {
-    const fc = data?.fantasy_content;
-    const leagueArray = fc?.league;
+    const leagueArray = data?.fantasy_content?.league;
     if (!Array.isArray(leagueArray)) return [];
 
     const leagueMeta = leagueArray[0] || {};
@@ -249,9 +247,13 @@ function extractMatchups(data) {
       .forEach((key) => {
         const matchupWrapper = matchupsObj[key];
         const matchup = matchupWrapper?.matchup;
-        const matchupInner = matchup?.["0"];
-        if (!matchupInner) return;
+        if (!matchup) return;
 
+        // In Yahoo JSON, these live on matchup object (same level as week/status)
+        const isPlayoffs = String(matchup?.is_playoffs ?? "0") === "1";
+        const isConsolation = String(matchup?.is_consolation ?? "0") === "1";
+
+        const matchupInner = matchup["0"]; // teams block lives here
         const teamsObj = matchupInner?.teams;
         if (!teamsObj) return;
 
@@ -282,20 +284,8 @@ function extractMatchups(data) {
         const teamAProb = team0Stats?.win_probability ?? null;
         const teamBProb = team1Stats?.win_probability ?? null;
 
-        // In Yahoo JSON, is_playoffs / is_consolation usually live alongside week/status
-        // BUT sometimes they sit at matchup["0"] or at matchupWrapper.matchup level.
-        const isPlayoffs =
-          asBool01(matchup?.is_playoffs) ||
-          asBool01(matchupInner?.is_playoffs) ||
-          asBool01(matchupWrapper?.is_playoffs);
-
-        const isConsolation =
-          asBool01(matchup?.is_consolation) ||
-          asBool01(matchupInner?.is_consolation) ||
-          asBool01(matchupWrapper?.is_consolation);
-
         result.push({
-          week: weekNumber,
+          week: toNum(matchup?.week ?? weekNumber, weekNumber),
           playoff: isPlayoffs,
           consolation: isConsolation,
           teamA: {
@@ -323,142 +313,129 @@ function extractMatchups(data) {
 }
 
 // ---------- Playoff Label ----------
-function playoffLabelForWeek(week, endWeek) {
+function playoffStageLabel(week) {
+  // Week 15 = Quarterfinal, 16 = Semifinal, 17 = Final (your league)
   const w = toNum(week, null);
-  const end = toNum(endWeek, null);
+  if (w == null) return "Playoffs";
 
-  if (w == null || end == null) return "Playoffs";
-
-  // 3-week playoff mapping from season end:
-  // endWeek = Final, endWeek-1 = Semifinal, endWeek-2 = Quarterfinal
-  if (w === end) return "Final";
-  if (w === end - 1) return "Semifinal";
-  if (w === end - 2) return "Quarterfinal";
-
+  if (w === PLAYOFF_START_WEEK) return "Quarterfinal";
+  if (w === PLAYOFF_START_WEEK + 1) return "Semifinal";
+  if (w >= PLAYOFF_START_WEEK + 2) return "Final";
   return "Playoffs";
 }
 
 // ---------- Rendering: Matchups ----------
-function renderMatchupCards(matchups, { endWeek } = {}) {
+function renderMatchupCards(matchups, sectionTagText = null) {
   if (!matchupsContainer) return;
-  matchupsContainer.innerHTML = "";
 
-  const isPlayoffWeek = matchups.some((m) => !!m.playoff);
+  matchups.forEach((m) => {
+    const card = document.createElement("article");
+    card.className = "matchup-card";
 
-  // If playoff week: split into two sections
-  const groups = isPlayoffWeek
-    ? [
-        {
-          title: "Championship Bracket",
-          items: matchups.filter((m) => m.playoff && !m.consolation),
-        },
-        {
-          title: "Consolation Bracket",
-          items: matchups.filter((m) => m.playoff && m.consolation),
-        },
-      ]
-    : [
-        {
-          title: null,
-          items: matchups,
-        },
-      ];
+    const teamAProbPct = m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
+    const teamBProbPct = m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
 
-  groups.forEach((g) => {
-    if (isPlayoffWeek) {
-      const header = document.createElement("div");
-      header.className = "panel-header";
-      header.style.marginTop = matchupsContainer.children.length ? "10px" : "0";
-      header.innerHTML = `
-        <h2 style="margin:0;font-size:0.95rem;">${escapeHtml(g.title)}</h2>
-        <span class="json-pill">${g.items.length}</span>
-      `;
-      matchupsContainer.appendChild(header);
-    }
+    const showTag = !!sectionTagText;
+    const tagText = sectionTagText ?? "";
 
-    if (!g.items.length) {
-      const empty = document.createElement("div");
-      empty.className = "standings-empty";
-      empty.textContent = "No matchups in this section.";
-      matchupsContainer.appendChild(empty);
-      return;
-    }
+    card.innerHTML = `
+      <div class="matchup-header-row">
+        <span class="matchup-week-label"></span>
+        ${showTag ? `<span class="matchup-tag">${escapeHtml(tagText)}</span>` : `<span></span>`}
+      </div>
 
-    g.items.forEach((m) => {
-      matchupsContainer.appendChild(buildMatchupCard(m, { endWeek }));
-    });
+      <div class="matchup-body">
+        <div class="team-column">
+          <div class="team-info">
+            ${
+              m.teamA.logo
+                ? `<img src="${m.teamA.logo}" alt="${escapeHtml(m.teamA.name)}" class="team-logo" />`
+                : `<div class="team-logo placeholder-logo">A</div>`
+            }
+            <div>
+              <div class="team-name">${escapeHtml(m.teamA.name)}</div>
+              <div class="team-metadata">
+                Proj: ${escapeHtml(String(m.teamA.projected))}
+                ${teamAProbPct != null ? ` · Win%: ${teamAProbPct}%` : ""}
+              </div>
+            </div>
+          </div>
+          <div class="team-score">${escapeHtml(String(m.teamA.score))}</div>
+        </div>
+
+        <div class="vs-column">
+          <span class="vs-pill">VS</span>
+        </div>
+
+        <div class="team-column">
+          <div class="team-info team-info-right">
+            <div>
+              <div class="team-name">${escapeHtml(m.teamB.name)}</div>
+              <div class="team-metadata">
+                Proj: ${escapeHtml(String(m.teamB.projected))}
+                ${teamBProbPct != null ? ` · Win%: ${teamBProbPct}%` : ""}
+              </div>
+            </div>
+            ${
+              m.teamB.logo
+                ? `<img src="${m.teamB.logo}" alt="${escapeHtml(m.teamB.name)}" class="team-logo" />`
+                : `<div class="team-logo placeholder-logo">B</div>`
+            }
+          </div>
+          <div class="team-score">${escapeHtml(String(m.teamB.score))}</div>
+        </div>
+      </div>
+    `;
+
+    matchupsContainer.appendChild(card);
   });
 }
 
-function buildMatchupCard(m, { endWeek } = {}) {
-  const card = document.createElement("article");
-  card.className = "matchup-card";
+function renderMatchupsGrouped(matchups) {
+  if (!matchupsContainer) return;
+  matchupsContainer.innerHTML = "";
 
-  const teamAProbPct = m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
-  const teamBProbPct = m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
+  const anyPlayoffs = matchups.some((m) => m.playoff);
 
-  const showPlayoffTag = !!m.playoff;
-  const tagText = showPlayoffTag ? playoffLabelForWeek(m.week, endWeek) : "";
+  // Regular season: no grouping needed
+  if (!anyPlayoffs) {
+    renderMatchupCards(matchups, null);
+    return;
+  }
 
-  card.innerHTML = `
-    <div class="matchup-header-row">
-      <span class="matchup-week-label"></span>
-      ${showPlayoffTag ? `<span class="matchup-tag">${escapeHtml(tagText)}</span>` : `<span></span>`}
-    </div>
+  // Playoff week: separate by consolation flag (if Yahoo provides it)
+  const champ = matchups.filter((m) => m.playoff && !m.consolation);
+  const consol = matchups.filter((m) => m.playoff && m.consolation);
+  const other = matchups.filter((m) => !m.playoff);
 
-    <div class="matchup-body">
-      <div class="team-column">
-        <div class="team-info">
-          ${
-            m.teamA.logo
-              ? `<img src="${m.teamA.logo}" alt="${escapeHtml(m.teamA.name)}" class="team-logo" />`
-              : `<div class="team-logo placeholder-logo">A</div>`
-          }
-          <div>
-            <div class="team-name">${escapeHtml(m.teamA.name)}</div>
-            <div class="team-metadata">
-              Proj: ${escapeHtml(String(m.teamA.projected))}
-              ${teamAProbPct != null ? ` · Win%: ${teamAProbPct}%` : ""}
-            </div>
-          </div>
-        </div>
-        <div class="team-score">${escapeHtml(String(m.teamA.score))}</div>
-      </div>
+  const stage = playoffStageLabel(matchups[0]?.week);
 
-      <div class="vs-column">
-        <span class="vs-pill">VS</span>
-      </div>
+  // Championship section
+  if (champ.length) {
+    const h = document.createElement("div");
+    h.className = "matchups-section-title";
+    h.textContent = "Championship Bracket";
+    matchupsContainer.appendChild(h);
+    renderMatchupCards(champ, stage);
+  }
 
-      <div class="team-column">
-        <div class="team-info team-info-right">
-          <div>
-            <div class="team-name">${escapeHtml(m.teamB.name)}</div>
-            <div class="team-metadata">
-              Proj: ${escapeHtml(String(m.teamB.projected))}
-              ${teamBProbPct != null ? ` · Win%: ${teamBProbPct}%` : ""}
-            </div>
-          </div>
-          ${
-            m.teamB.logo
-              ? `<img src="${m.teamB.logo}" alt="${escapeHtml(m.teamB.name)}" class="team-logo" />`
-              : `<div class="team-logo placeholder-logo">B</div>`
-          }
-        </div>
-        <div class="team-score">${escapeHtml(String(m.teamB.score))}</div>
-      </div>
-    </div>
-  `;
+  // Consolation section (only if Yahoo flags any)
+  if (consol.length) {
+    const h = document.createElement("div");
+    h.className = "matchups-section-title";
+    h.textContent = "Consolation Bracket";
+    matchupsContainer.appendChild(h);
+    renderMatchupCards(consol, stage);
+  }
 
-  return card;
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  // If there are non-playoff matchups present (rare), show them too
+  if (other.length) {
+    const h = document.createElement("div");
+    h.className = "matchups-section-title";
+    h.textContent = "Other Matchups";
+    matchupsContainer.appendChild(h);
+    renderMatchupCards(other, null);
+  }
 }
 
 // ---------- Standings Parsing ----------
@@ -520,9 +497,7 @@ function extractStandingsRows(data) {
 function applyStandingsSort(rows) {
   const r = [...rows];
 
-  if (standingsSortMode === "yahoo") {
-    return r;
-  }
+  if (standingsSortMode === "yahoo") return r;
 
   if (standingsSortMode === "rank") {
     r.sort((a, b) => a.rank - b.rank);
@@ -605,8 +580,9 @@ function renderStandingsSection() {
   });
 }
 
-// ---------- Auto Load ----------
+// ---------- Auto Boot ----------
 async function autoBoot() {
+  // Standings + current week load (will 401 if not signed in; that’s fine)
   await loadStandings();
   await loadScoreboardForWeek(null, { renderMatchups: true });
 }
