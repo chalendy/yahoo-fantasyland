@@ -81,7 +81,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD ROUTE
+//  SCOREBOARD (supports ?week=)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
@@ -89,14 +89,23 @@ app.get("/scoreboard", async (req, res) => {
   }
 
   try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+    const rawWeek = req.query.week;
+    const week =
+      rawWeek && /^\d+$/.test(String(rawWeek)) ? String(parseInt(rawWeek, 10)) : null;
+
+    // Yahoo expects ;week= in the *path*
+    const weekSegment = week ? `;week=${week}` : "";
+
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSegment}?format=json`;
+
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
     if (!apiRes.ok) {
-      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+      console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
+      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
     }
 
     res.json(JSON.parse(bodyText));
@@ -105,6 +114,7 @@ app.get("/scoreboard", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch scoreboard" });
   }
 });
+
 
 // -----------------------------
 // ⭐ OFFICIAL STANDINGS ROUTE (frontend uses this)
