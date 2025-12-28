@@ -15,8 +15,6 @@ const __dirname = path.dirname(__filename);
 // --- ENV ---
 const CLIENT_ID = process.env.YAHOO_CLIENT_ID;
 const CLIENT_SECRET = process.env.YAHOO_CLIENT_SECRET;
-
-// IMPORTANT: must exactly match your Yahoo app redirect URI
 const REDIRECT_URI = "https://yh-fantasyland.onrender.com/auth/callback";
 
 // League Info
@@ -24,7 +22,7 @@ const LEAGUE_ID = "38076";
 const GAME_KEY = "nfl";
 const LEAGUE_KEY = `${GAME_KEY}.l.${LEAGUE_ID}`;
 
-// Token storage (simple demo)
+// Token storage (simple)
 let accessToken = null;
 
 // -----------------------------
@@ -36,7 +34,6 @@ app.get("/auth/start", (req, res) => {
   authURL.searchParams.set("redirect_uri", REDIRECT_URI);
   authURL.searchParams.set("response_type", "code");
   authURL.searchParams.set("language", "en-us");
-
   res.redirect(authURL.toString());
 });
 
@@ -52,8 +49,7 @@ app.get("/auth/callback", async (req, res) => {
     const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
       method: "POST",
       headers: {
-        Authorization:
-          "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
+        Authorization: "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
@@ -81,33 +77,28 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD (supports week)
-//  Yahoo uses ;week=N (NOT ?week=N)
+//  SCOREBOARD (supports ?week=)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
   }
 
-  const week = req.query.week ? String(req.query.week) : null;
-
   try {
-    const weekPart = week ? `;week=${encodeURIComponent(week)}` : "";
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekPart}?format=json`;
+    const week = req.query.week ? String(req.query.week) : null;
+
+    // Yahoo expects ;week=X (not ?week=X) on the fantasy/v2 resource
+    const weekSegment = week ? `;week=${encodeURIComponent(week)}` : "";
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSegment}?format=json`;
 
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
-
     if (!apiRes.ok) {
       console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
-      return res.status(500).json({
-        error: "Yahoo API error",
-        status: apiRes.status,
-        body: bodyText,
-      });
+      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
     }
 
     res.json(JSON.parse(bodyText));
@@ -118,7 +109,7 @@ app.get("/scoreboard", async (req, res) => {
 });
 
 // -----------------------------
-//  STANDINGS (raw)
+//  STANDINGS RAW
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
   if (!accessToken) {
@@ -133,14 +124,9 @@ app.get("/standings-raw", async (req, res) => {
     });
 
     const bodyText = await apiRes.text();
-
     if (!apiRes.ok) {
       console.error("Yahoo standings error:", apiRes.status, bodyText);
-      return res.status(500).json({
-        error: "Yahoo API error",
-        status: apiRes.status,
-        body: bodyText,
-      });
+      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
     }
 
     res.type("application/json").send(bodyText);
