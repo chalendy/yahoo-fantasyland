@@ -1,22 +1,31 @@
-// Same-origin (Render serves frontend + backend together)
+// Same-origin backend
 const backendBase = "";
 
-// UI elements
+// --------- Elements ----------
 const authBtn = document.getElementById("authBtn");
 const loadJsonBtn = document.getElementById("loadJsonBtn");
 const loadMatchupsBtn = document.getElementById("loadMatchupsBtn");
+const weekSelect = document.getElementById("weekSelect");
+
 const jsonOutput = document.getElementById("jsonOutput");
 const matchupsContainer = document.getElementById("matchupsContainer");
 const standingsContainer = document.getElementById("standingsContainer");
+
 const statusMessage = document.getElementById("statusMessage");
 const weekLabel = document.getElementById("weekLabel");
-const weekSelect = document.getElementById("weekSelect");
+
+// Optional standings header (for injecting sort UI)
+const standingsHeader = document.querySelector(".standings-header");
 
 let scoreboardData = null;
-let leagueMeta = null;
+let currentWeek = null;
 
-// ------------- Helpers -------------
+// Standings state
+let standingsRows = [];
+let standingsSortKey = "rank";
+let standingsSortDir = "asc";
 
+// --------- Helpers ----------
 function setStatus(msg) {
   if (statusMessage) statusMessage.textContent = msg || "";
 }
@@ -24,93 +33,123 @@ function setStatus(msg) {
 function pluckField(objArray, key) {
   if (!Array.isArray(objArray)) return null;
   for (const entry of objArray) {
-    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
-      return entry[key];
-    }
+    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) return entry[key];
   }
   return null;
 }
 
-function safeText(v, fallback = "") {
-  if (v === undefined || v === null) return fallback;
-  return String(v);
+function safeNumber(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function clearNode(el) {
-  if (el) el.innerHTML = "";
+function formatRecord(w, l, t) {
+  const tw = w ?? "0";
+  const tl = l ?? "0";
+  const tt = t ?? "0";
+  if (String(tt) === "0" || tt === 0) return `${tw}-${tl}`;
+  return `${tw}-${tl}-${tt}`;
 }
 
-// ------------- Auth -------------
-
+// --------- Auth ----------
 if (authBtn) {
   authBtn.addEventListener("click", () => {
-    // Yahoo OAuth start (server handles redirect)
     window.location.href = `${backendBase}/auth/start`;
   });
 }
 
-// ------------- Fetchers -------------
+// --------- Week dropdown population ----------
+function populateWeekDropdown(meta) {
+  if (!weekSelect) return;
 
-async function fetchScoreboardForWeek(week) {
-  // Server may support ?week= (your dropdown worked before),
-  // but we’ll also gracefully fall back.
-  const url = week ? `${backendBase}/scoreboard?week=${encodeURIComponent(week)}` : `${backendBase}/scoreboard`;
-  const res = await fetch(url);
+  const startWeek = safeNumber(meta?.start_week, 1);
+  const endWeek = safeNumber(meta?.end_week, meta?.current_week ?? 17);
+  const selected = safeNumber(currentWeek ?? meta?.current_week, startWeek);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Scoreboard error ${res.status}: ${text}`);
+  // Build options once per refresh
+  weekSelect.innerHTML = "";
+  for (let w = startWeek; w <= endWeek; w++) {
+    const opt = document.createElement("option");
+    opt.value = String(w);
+    opt.textContent = `Week ${w}`;
+    if (w === selected) opt.selected = true;
+    weekSelect.appendChild(opt);
   }
-  return res.json();
 }
 
-async function fetchStandingsRaw() {
-  const res = await fetch(`${backendBase}/standings-raw`);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Standings error ${res.status}: ${text}`);
-  }
-  // standings-raw returns JSON as text; parse it
-  const rawText = await res.text();
-  return JSON.parse(rawText);
+function updateWeekLabel(week) {
+  if (weekLabel && week != null) weekLabel.textContent = `Week ${week}`;
 }
 
-// ------------- Parsing: Matchups -------------
+// --------- Fetch scoreboard ----------
+async function loadScoreboardJSON() {
+  setStatus("Loading scoreboard JSON...");
+  if (jsonOutput) jsonOutput.textContent = "Loading...";
 
+  const res = await fetch(`${backendBase}/scoreboard`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Scoreboard error:", res.status, text);
+    if (jsonOutput) jsonOutput.textContent = `Error: ${res.status}\n${text}`;
+    setStatus(res.status === 401 ? "Not authenticated. Click Sign In with Yahoo." : "Failed to load scoreboard JSON.");
+    return null;
+  }
+
+  const data = await res.json();
+  scoreboardData = data;
+
+  if (jsonOutput) jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+  // Determine current week from JSON (prefer league.current_week)
+  const leagueArr = data?.fantasy_content?.league;
+  const leagueMeta = Array.isArray(leagueArr) ? leagueArr[0] : null;
+  const scoreboard = Array.isArray(leagueArr) ? leagueArr[1]?.scoreboard : null;
+
+  currentWeek =
+    safeNumber(leagueMeta?.current_week, null) ??
+    safeNumber(scoreboard?.week, null);
+
+  updateWeekLabel(currentWeek);
+  populateWeekDropdown(leagueMeta);
+
+  setStatus("Scoreboard JSON loaded.");
+  return data;
+}
+
+// --------- Extract matchups from scoreboard JSON ----------
 function extractMatchups(data) {
   try {
-    const fc = data.fantasy_content;
-    const leagueArray = fc.league;
+    const fc = data?.fantasy_content;
+    const leagueArray = fc?.league;
+    const leagueMeta = leagueArray?.[0];
+    const scoreboard = leagueArray?.[1]?.scoreboard;
 
-    const meta = leagueArray[0];
-    const scoreboard = leagueArray[1]?.scoreboard;
+    const weekNumber = scoreboard?.week ?? leagueMeta?.current_week;
 
-    // scoreboard["0"].matchups
-    const scoreboardRoot = scoreboard?.["0"];
-    const matchupsObj = scoreboardRoot?.matchups;
+    // Scoreboard root: scoreboard["0"].matchups
+    const root = scoreboard?.["0"];
+    const matchupsObj = root?.matchups;
 
     if (!matchupsObj) return [];
 
-    const weekNumber = scoreboard?.week ?? meta?.current_week;
     const result = [];
 
     Object.keys(matchupsObj)
       .filter((k) => k !== "count")
       .forEach((key) => {
         const matchupWrapper = matchupsObj[key];
-        const matchup = matchupWrapper.matchup;
+        const matchup = matchupWrapper?.matchup;
         const matchupInner = matchup?.["0"];
         const teamsObj = matchupInner?.teams;
 
-        if (!teamsObj || !teamsObj["0"] || !teamsObj["1"]) return;
+        const team0 = teamsObj?.["0"]?.team;
+        const team1 = teamsObj?.["1"]?.team;
+        if (!team0 || !team1) return;
 
-        const team0 = teamsObj["0"].team;
-        const team1 = teamsObj["1"].team;
-
-        const team0Meta = team0?.[0];
-        const team0Stats = team0?.[1];
-        const team1Meta = team1?.[0];
-        const team1Stats = team1?.[1];
+        const team0Meta = team0[0];
+        const team0Stats = team0[1];
+        const team1Meta = team1[0];
+        const team1Stats = team1[1];
 
         const teamAName = pluckField(team0Meta, "name") || "Unknown Team";
         const teamBName = pluckField(team1Meta, "name") || "Unknown Team";
@@ -118,8 +157,8 @@ function extractMatchups(data) {
         const teamALogoObj = pluckField(team0Meta, "team_logos");
         const teamBLogoObj = pluckField(team1Meta, "team_logos");
 
-        const teamALogo = teamALogoObj?.[0]?.team_logo?.url || null;
-        const teamBLogo = teamBLogoObj?.[0]?.team_logo?.url || null;
+        const teamALogo = teamALogoObj?.[0]?.team_logo?.url ?? null;
+        const teamBLogo = teamBLogoObj?.[0]?.team_logo?.url ?? null;
 
         const teamAScore = team0Stats?.team_points?.total ?? "0.00";
         const teamBScore = team1Stats?.team_points?.total ?? "0.00";
@@ -130,26 +169,15 @@ function extractMatchups(data) {
         const teamAProb = team0Stats?.win_probability ?? null;
         const teamBProb = team1Stats?.win_probability ?? null;
 
-        // Yahoo indicates playoffs with is_playoffs in matchup
-        const isPlayoffs = safeText(matchup?.is_playoffs ?? matchupInner?.is_playoffs ?? "0") === "1";
+        // Hide "Playoffs" tag unless it's actually playoffs.
+        // Yahoo includes is_playoffs as "1" or "0" per matchup.
+        const isPlayoffs = matchupInner?.is_playoffs === "1" || matchupWrapper?.matchup?.is_playoffs === "1";
 
         result.push({
           week: weekNumber,
           isPlayoffs,
-          teamA: {
-            name: teamAName,
-            logo: teamALogo,
-            score: teamAScore,
-            projected: teamAProj,
-            winProbability: teamAProb,
-          },
-          teamB: {
-            name: teamBName,
-            logo: teamBLogo,
-            score: teamBScore,
-            projected: teamBProj,
-            winProbability: teamBProb,
-          },
+          teamA: { name: teamAName, logo: teamALogo, score: teamAScore, projected: teamAProj, winProbability: teamAProb },
+          teamB: { name: teamBName, logo: teamBLogo, score: teamBScore, projected: teamBProj, winProbability: teamBProb },
         });
       });
 
@@ -160,29 +188,25 @@ function extractMatchups(data) {
   }
 }
 
-// ------------- Rendering: Matchups -------------
-
+// --------- Render matchups ----------
 function renderMatchupCards(matchups) {
   if (!matchupsContainer) return;
-  clearNode(matchupsContainer);
+  matchupsContainer.innerHTML = "";
 
   matchups.forEach((m) => {
     const card = document.createElement("article");
     card.className = "matchup-card";
 
-    const teamAProbPct =
-      m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
-    const teamBProbPct =
-      m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
+    const teamAProbPct = m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
+    const teamBProbPct = m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
+
+    // Tag only if playoffs
+    const tagHtml = m.isPlayoffs ? `<span class="matchup-tag">Playoffs</span>` : ``;
 
     card.innerHTML = `
       <div class="matchup-header-row">
         <span class="matchup-week-label">Week ${m.week ?? "?"}</span>
-        ${
-          m.isPlayoffs
-            ? `<span class="matchup-tag">Playoffs</span>`
-            : ``
-        }
+        ${tagHtml}
       </div>
 
       <div class="matchup-body">
@@ -196,8 +220,7 @@ function renderMatchupCards(matchups) {
             <div>
               <div class="team-name">${m.teamA.name}</div>
               <div class="team-metadata">
-                Proj: ${m.teamA.projected}
-                ${teamAProbPct != null ? ` · Win%: ${teamAProbPct}%` : ""}
+                Proj: ${m.teamA.projected}${teamAProbPct != null ? ` · Win%: ${teamAProbPct}%` : ""}
               </div>
             </div>
           </div>
@@ -213,8 +236,7 @@ function renderMatchupCards(matchups) {
             <div>
               <div class="team-name">${m.teamB.name}</div>
               <div class="team-metadata">
-                Proj: ${m.teamB.projected}
-                ${teamBProbPct != null ? ` · Win%: ${teamBProbPct}%` : ""}
+                Proj: ${m.teamB.projected}${teamBProbPct != null ? ` · Win%: ${teamBProbPct}%` : ""}
               </div>
             </div>
             ${
@@ -232,269 +254,279 @@ function renderMatchupCards(matchups) {
   });
 }
 
-// ------------- Parsing + Rendering: Standings -------------
+// --------- Standings: fetch + parse ----------
+async function loadStandings() {
+  if (!standingsContainer) return;
 
-function extractStandings(standingsJson) {
+  // If not logged in, standings-raw returns 401.
+  const res = await fetch(`${backendBase}/standings-raw`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Standings error:", res.status, text);
+    standingsContainer.innerHTML = `<div class="standings-empty">Error loading standings.</div>`;
+    return;
+  }
+
+  // NOTE: standings-raw may send JSON as text
+  const text = await res.text();
+  let data;
   try {
-    const leagueArray = standingsJson?.fantasy_content?.league;
-    const standingsBlock = leagueArray?.[1]?.standings?.[0];
-    const teamsObj = standingsBlock?.teams;
+    data = JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse standings JSON:", e);
+    standingsContainer.innerHTML = `<div class="standings-empty">Error parsing standings.</div>`;
+    return;
+  }
 
-    if (!teamsObj) return [];
+  standingsRows = extractStandingsRows(data);
+  applyStandingsSort();
+  renderStandings();
+}
 
-    const teams = [];
-    Object.keys(teamsObj)
+function extractStandingsRows(data) {
+  try {
+    const leagueArr = data?.fantasy_content?.league;
+    const standingsBlock = leagueArr?.[1]?.standings?.[0]?.teams;
+    if (!standingsBlock) return [];
+
+    const rows = [];
+
+    Object.keys(standingsBlock)
       .filter((k) => k !== "count")
-      .forEach((k) => {
-        const teamArr = teamsObj[k]?.team;
-        const meta = teamArr?.[0];
-        const points = teamArr?.[1]?.team_points?.total;
-        const standings = teamArr?.[2]?.team_standings;
+      .forEach((key) => {
+        const team = standingsBlock[key]?.team;
+        if (!team) return;
+
+        const meta = team[0];
+        const points = team[1]?.team_points;
+        const standings = team[2]?.team_standings;
 
         const name = pluckField(meta, "name") || "Unknown Team";
-        const logoObj = pluckField(meta, "team_logos");
-        const logo = logoObj?.[0]?.team_logo?.url || null;
+        const logos = pluckField(meta, "team_logos");
+        const logo = logos?.[0]?.team_logo?.url ?? null;
 
-        const rank = standings?.rank ?? null;
-        const wins = standings?.outcome_totals?.wins ?? "?";
-        const losses = standings?.outcome_totals?.losses ?? "?";
-        const ties = standings?.outcome_totals?.ties ?? 0;
+        const managersObj = pluckField(meta, "managers");
+        const managerName = managersObj?.[0]?.manager?.nickname ?? "";
 
-        // Manager name (first manager nickname if present)
-        const managers = pluckField(meta, "managers");
-        const managerNickname = managers?.[0]?.manager?.nickname || "";
+        const rank = standings?.rank ?? "";
+        const wins = standings?.outcome_totals?.wins ?? "0";
+        const losses = standings?.outcome_totals?.losses ?? "0";
+        const ties = standings?.outcome_totals?.ties ?? "0";
 
-        const pf = points ?? standings?.points_for ?? "";
+        const pointsFor = standings?.points_for ?? points?.total ?? "0";
+        const pointsAgainst = standings?.points_against ?? "0";
 
-        teams.push({
-          rank: rank ? Number(rank) : 999,
-          rankText: safeText(rank, "?"),
+        rows.push({
+          rank: safeNumber(rank, 999),
           name,
+          managerName,
+          record: { wins: safeNumber(wins, 0), losses: safeNumber(losses, 0), ties: safeNumber(ties, 0) },
+          pf: safeNumber(pointsFor, 0),
+          pa: safeNumber(pointsAgainst, 0),
           logo,
-          record: `${wins}-${losses}${ties && Number(ties) > 0 ? `-${ties}` : ""}`,
-          manager: managerNickname,
-          pf: safeText(pf, ""),
         });
       });
 
-    // Yahoo sorting = rank ascending
-    teams.sort((a, b) => a.rank - b.rank);
-    return teams;
-  } catch (e) {
-    console.error("extractStandings error:", e);
+    return rows;
+  } catch (err) {
+    console.error("extractStandingsRows error:", err);
     return [];
   }
 }
 
-function renderStandings(teams) {
-  if (!standingsContainer) return;
-  clearNode(standingsContainer);
+// --------- Standings: sorting UI ----------
+function ensureStandingsSortUI() {
+  if (!standingsHeader) return;
 
-  if (!teams || teams.length === 0) {
+  // Already injected?
+  if (document.getElementById("standingsSortSelect")) return;
+
+  const controls = document.createElement("div");
+  controls.className = "standings-sort-controls";
+
+  controls.innerHTML = `
+    <select id="standingsSortSelect" class="standings-sort-select" aria-label="Sort standings">
+      <option value="rank">Yahoo Rank</option>
+      <option value="pf">Points For</option>
+      <option value="pa">Points Against</option>
+      <option value="wins">Wins</option>
+    </select>
+    <button id="standingsSortDirBtn" class="standings-sort-dir" title="Toggle sort direction" aria-label="Toggle sort direction">
+      <span id="standingsSortDirIcon">↑</span>
+    </button>
+  `;
+
+  standingsHeader.appendChild(controls);
+
+  const sel = document.getElementById("standingsSortSelect");
+  const btn = document.getElementById("standingsSortDirBtn");
+  const icon = document.getElementById("standingsSortDirIcon");
+
+  if (sel) {
+    sel.value = standingsSortKey;
+    sel.addEventListener("change", () => {
+      standingsSortKey = sel.value;
+      applyStandingsSort();
+      renderStandings();
+    });
+  }
+
+  if (btn) {
+    btn.addEventListener("click", () => {
+      standingsSortDir = standingsSortDir === "asc" ? "desc" : "asc";
+      if (icon) icon.textContent = standingsSortDir === "asc" ? "↑" : "↓";
+      applyStandingsSort();
+      renderStandings();
+    });
+  }
+}
+
+function applyStandingsSort() {
+  const dir = standingsSortDir === "asc" ? 1 : -1;
+
+  standingsRows.sort((a, b) => {
+    if (standingsSortKey === "rank") return (a.rank - b.rank) * dir;
+    if (standingsSortKey === "pf") return (a.pf - b.pf) * dir;
+    if (standingsSortKey === "pa") return (a.pa - b.pa) * dir;
+    if (standingsSortKey === "wins") return (a.record.wins - b.record.wins) * dir;
+    return 0;
+  });
+
+  // Default: Rank should be ASC, others feel better as DESC
+  // We'll keep user's chosen direction once they toggle it.
+}
+
+// --------- Render standings ----------
+function renderStandings() {
+  if (!standingsContainer) return;
+
+  if (!standingsRows || standingsRows.length === 0) {
     standingsContainer.innerHTML = `<div class="standings-empty">No standings found.</div>`;
     return;
   }
 
-  const frag = document.createDocumentFragment();
+  standingsContainer.innerHTML = "";
 
-  teams.forEach((t) => {
+  standingsRows.forEach((r) => {
     const row = document.createElement("div");
     row.className = "standings-row";
 
     row.innerHTML = `
       <div class="standings-left">
         ${
-          t.logo
-            ? `<img class="standings-logo" src="${t.logo}" alt="${t.name}">`
+          r.logo
+            ? `<img class="standings-logo" src="${r.logo}" alt="${r.name}" />`
             : `<div class="standings-logo standings-logo--placeholder"></div>`
         }
-        <div class="standings-text">
-          <div class="standings-line1">
-            <span class="standings-rank">#${t.rankText}</span>
-            <span class="standings-team" title="${t.name}">${t.name}</span>
+        <div class="standings-name-wrap">
+          <div class="standings-name-line">
+            <span class="standings-rank">#${r.rank}</span>
+            <span class="standings-name" title="${r.name}">${r.name}</span>
           </div>
-          <div class="standings-line2">
-            <span class="standings-record">${t.record}</span>
-            ${t.manager ? `<span class="standings-manager"> · ${t.manager}</span>` : ``}
+          <div class="standings-sub">
+            <span class="standings-record">${formatRecord(r.record.wins, r.record.losses, r.record.ties)}</span>
+            ${r.managerName ? `<span class="standings-dot">·</span><span class="standings-manager">${r.managerName}</span>` : ""}
           </div>
         </div>
       </div>
 
       <div class="standings-right">
-        <div class="standings-pf">${t.pf}</div>
+        <div class="standings-pf">${r.pf.toFixed(2)}</div>
         <div class="standings-pf-label">PF</div>
       </div>
     `;
 
-    frag.appendChild(row);
-  });
-
-  standingsContainer.appendChild(frag);
-}
-
-// ------------- Week dropdown -------------
-
-function populateWeekDropdown(meta) {
-  if (!weekSelect || !meta) return;
-
-  const startWeek = Number(meta.start_week ?? 1);
-  const endWeek = Number(meta.end_week ?? meta.current_week ?? 17);
-  const currentWeek = Number(meta.current_week ?? startWeek);
-
-  // If already populated, don’t wipe if it’s correct
-  weekSelect.innerHTML = "";
-
-  for (let w = startWeek; w <= endWeek; w++) {
-    const opt = document.createElement("option");
-    opt.value = String(w);
-    opt.textContent = `Week ${w}`;
-    if (w === currentWeek) opt.selected = true;
-    weekSelect.appendChild(opt);
-  }
-
-  if (weekLabel) weekLabel.textContent = `Week ${currentWeek}`;
-}
-
-async function loadMatchupsForSelectedWeek() {
-  const selectedWeek = weekSelect?.value;
-  if (!selectedWeek) return;
-
-  setStatus(`Loading matchups for Week ${selectedWeek}...`);
-
-  try {
-    const data = await fetchScoreboardForWeek(selectedWeek);
-    scoreboardData = data;
-
-    // Update JSON debug panel (optional but helpful)
-    if (jsonOutput) jsonOutput.textContent = JSON.stringify(data, null, 2);
-
-    // Update week label to the selected week (don’t trust response meta)
-    if (weekLabel) weekLabel.textContent = `Week ${selectedWeek}`;
-
-    const matchups = extractMatchups(data);
-    if (!matchups || matchups.length === 0) {
-      clearNode(matchupsContainer);
-      setStatus("No matchups found for that week.");
-      return;
-    }
-
-    renderMatchupCards(matchups);
-    setStatus(`Showing ${matchups.length} matchups for Week ${selectedWeek}.`);
-  } catch (err) {
-    console.error("Week matchup load error:", err);
-    setStatus("Error loading matchups for selected week.");
-  }
-}
-
-// Hook dropdown changes
-if (weekSelect) {
-  weekSelect.addEventListener("change", () => {
-    loadMatchupsForSelectedWeek();
+    standingsContainer.appendChild(row);
   });
 }
 
-// ------------- Button handlers -------------
-
+// --------- Button handlers ----------
 if (loadJsonBtn) {
   loadJsonBtn.addEventListener("click", async () => {
-    try {
-      setStatus("Loading scoreboard JSON...");
-      if (jsonOutput) jsonOutput.textContent = "Loading...";
-
-      // If a week is selected, load that week’s scoreboard
-      const week = weekSelect?.value || null;
-      const data = await fetchScoreboardForWeek(week);
-
-      scoreboardData = data;
-
-      if (jsonOutput) jsonOutput.textContent = JSON.stringify(data, null, 2);
-      setStatus("Scoreboard JSON loaded successfully.");
-
-      // Update league meta + week dropdown once
-      const leagueArr = data?.fantasy_content?.league;
-      leagueMeta = leagueArr?.[0] || null;
-      if (leagueMeta) populateWeekDropdown(leagueMeta);
-
-      // Also render matchups immediately after JSON load (nice UX)
-      const matchups = extractMatchups(data);
-      if (matchups.length) renderMatchupCards(matchups);
-    } catch (err) {
-      console.error("Load JSON error:", err);
-      if (jsonOutput) jsonOutput.textContent = "Error fetching scoreboard. See console.";
-      setStatus("Error fetching scoreboard JSON (are you signed in?).");
+    await loadScoreboardJSON();
+    // After loading JSON, render matchups for whatever week is in JSON
+    if (scoreboardData) {
+      const matchups = extractMatchups(scoreboardData);
+      if (matchups.length) {
+        renderMatchupCards(matchups);
+        setStatus(`Loaded ${matchups.length} matchups.`);
+      } else {
+        matchupsContainer && (matchupsContainer.innerHTML = "");
+        setStatus("No matchups found for this week.");
+      }
     }
   });
 }
 
 if (loadMatchupsBtn) {
-  loadMatchupsBtn.addEventListener("click", async () => {
-    // Prefer loading matchups for selected week directly
-    if (weekSelect?.value) {
-      await loadMatchupsForSelectedWeek();
-      return;
-    }
-
-    // Fallback: if no dropdown populated yet, use cached scoreboardData
+  loadMatchupsBtn.addEventListener("click", () => {
     if (!scoreboardData) {
       setStatus("No scoreboard loaded yet. Click 'Load Scoreboard JSON' first.");
       return;
     }
-
     const matchups = extractMatchups(scoreboardData);
     if (!matchups || matchups.length === 0) {
       setStatus("No matchups found for this week.");
-      clearNode(matchupsContainer);
+      if (matchupsContainer) matchupsContainer.innerHTML = "";
       return;
     }
-
     renderMatchupCards(matchups);
     setStatus(`Showing ${matchups.length} matchups for this week.`);
   });
 }
 
-// ------------- Auto load everything -------------
+// Week selection (client-side re-render)
+if (weekSelect) {
+  weekSelect.addEventListener("change", async () => {
+    const selectedWeek = safeNumber(weekSelect.value, null);
+    if (!selectedWeek) return;
 
-async function autoLoadEverything() {
-  setStatus("Loading scoreboard + standings...");
+    // If your backend supports week-specific scoreboard later, you can swap this to:
+    // await loadScoreboardForWeek(selectedWeek)
+    // For now: just re-render from current loaded scoreboard data if available.
+    currentWeek = selectedWeek;
+    updateWeekLabel(selectedWeek);
 
-  // 1) Load standings (independent)
-  try {
-    const standingsJson = await fetchStandingsRaw();
-    const teams = extractStandings(standingsJson);
-    renderStandings(teams);
-  } catch (err) {
-    console.error("Standings load error:", err);
-    if (standingsContainer) {
-      standingsContainer.innerHTML = `<div class="standings-empty">Error loading standings (sign in first).</div>`;
+    if (!scoreboardData) {
+      setStatus("Load Scoreboard JSON first.");
+      return;
     }
-  }
 
-  // 2) Load scoreboard (may 401 if not signed in)
+    // Scoreboard JSON already corresponds to the league’s current_week.
+    // If you later add server support (?week=), update this handler.
+    const matchups = extractMatchups(scoreboardData);
+    if (!matchups.length) {
+      setStatus("No matchups found for this week.");
+      if (matchupsContainer) matchupsContainer.innerHTML = "";
+      return;
+    }
+
+    renderMatchupCards(matchups);
+    setStatus(`Showing matchups (scoreboard data).`);
+  });
+}
+
+// --------- Auto-load ----------
+async function boot() {
+  ensureStandingsSortUI();
+
+  // Try loading scoreboard + standings on page load.
+  // If user isn't authenticated yet, scoreboard will 401; we show a friendly status.
   try {
-    const data = await fetchScoreboardForWeek(null);
-    scoreboardData = data;
-
-    // debug
-    if (jsonOutput) jsonOutput.textContent = JSON.stringify(data, null, 2);
-
-    // meta + dropdown
-    const leagueArr = data?.fantasy_content?.league;
-    leagueMeta = leagueArr?.[0] || null;
-    if (leagueMeta) populateWeekDropdown(leagueMeta);
-
-    // render matchups for current selected week (or current_week)
-    if (weekSelect?.value) {
-      // Load scoreboard for selected week to ensure matchups match dropdown
-      await loadMatchupsForSelectedWeek();
-    } else {
+    const data = await loadScoreboardJSON();
+    if (data) {
       const matchups = extractMatchups(data);
       if (matchups.length) renderMatchupCards(matchups);
-      setStatus(`Loaded ${matchups.length || 0} matchups.`);
     }
-  } catch (err) {
-    console.error("Auto scoreboard load error:", err);
-    setStatus("Not signed in. Click 'Sign In with Yahoo' first.");
+  } catch (e) {
+    // loadScoreboardJSON already prints status
+  }
+
+  try {
+    await loadStandings();
+  } catch (e) {
+    console.error("Standings load error:", e);
   }
 }
 
-window.addEventListener("DOMContentLoaded", autoLoadEverything);
+window.addEventListener("DOMContentLoaded", boot);
