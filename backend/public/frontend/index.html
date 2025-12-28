@@ -25,8 +25,6 @@
         <div class="button-row">
           <button id="loadJsonBtn" class="btn btn-secondary">Load Scoreboard JSON</button>
           <button id="loadMatchupsBtn" class="btn btn-accent">Load This Week’s Matchups</button>
-
-          <!-- Week dropdown (already implemented earlier) -->
           <select id="weekSelect" class="week-dropdown"></select>
         </div>
 
@@ -44,21 +42,16 @@
           <div id="matchupsContainer" class="matchups-grid"></div>
         </section>
 
-        <!-- RIGHT SIDE: STANDINGS + JSON (stacked vertically) -->
+        <!-- RIGHT SIDE -->
         <section class="right-side">
-          <!-- STANDINGS (Always Visible) -->
-<section class="standings-panel">
-  <div class="standings-header">
-    <h2>League Standings</h2>
-    <span class="standings-live-pill">Live</span>
-  </div>
+          <section class="standings-panel">
+            <div class="standings-header">
+              <h2>League Standings</h2>
+              <span class="standings-live-pill">Live</span>
+            </div>
+            <div id="standingsContainer" class="standings-list"></div>
+          </section>
 
-  <div id="standingsContainer" class="standings-list">
-    <!-- JS inserts .standings-card here -->
-  </div>
-</section>
-
-          <!-- JSON PANEL -->
           <section class="json-panel">
             <div class="panel-header">
               <h2>Scoreboard JSON</h2>
