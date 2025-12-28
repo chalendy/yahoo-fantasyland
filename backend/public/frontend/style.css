@@ -13,13 +13,6 @@
   --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
-
-  /* Compact knobs for standings */
-  --stand-row-pad-y: 7px;
-  --stand-row-pad-x: 10px;
-  --stand-logo: 28px;
-  --stand-font: 0.82rem;
-  --stand-subfont: 0.72rem;
 }
 
 *,
@@ -43,7 +36,6 @@ body {
 .app-shell {
   min-height: 100vh;
   max-width: 1200px;
- 
   margin: 0 auto;
   padding: 24px 16px 32px;
   display: flex;
@@ -107,6 +99,7 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
+  align-items: center;
 }
 
 .status-message {
@@ -161,7 +154,19 @@ body {
   background: rgba(127, 90, 240, 0.22);
 }
 
-/* Layout: matchups + side panel */
+/* Week dropdown */
+.week-dropdown {
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Layout: matchups + right side */
 
 .layout {
   display: grid;
@@ -170,7 +175,8 @@ body {
 }
 
 .matchups-panel,
-.json-panel {
+.json-panel,
+.standings-panel {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -184,7 +190,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
 }
 
 .panel-header h2 {
@@ -208,21 +213,30 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
+/* Right side stack */
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 /* Matchups */
 
 .matchups-grid {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 480px;
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .matchup-card {
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
-              var(--bg-elevated-soft);
+  background:
+    radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+    radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
+    var(--bg-elevated-soft);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   padding: 10px 12px 10px;
@@ -325,49 +339,46 @@ body {
   font-size: 0.8rem;
 }
 
-/* JSON output (still used as debug if present) */
-
-.json-output {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  background: #050710;
-  color: #e5e5f5;
-  font-size: 0.75rem;
-  max-height: 430px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* Standings header */
+.standings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* -----------------------------
-   Standings (ULTRA COMPACT)
------------------------------- */
+.standings-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
 
+.standings-live-pill {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* ✅ Ultra-compact standings list */
 .standings-list {
-  /* This is your container in index.html */
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 430px;
-  overflow: auto;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
   padding-right: 4px;
 }
 
-.standings-list-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+/* Each row is compact and NOT using matchup-card */
 .standings-row {
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--stand-row-pad-y) var(--stand-row-pad-x);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .standings-left {
@@ -378,8 +389,8 @@ body {
 }
 
 .standings-logo {
-  width: var(--stand-logo);
-  height: var(--stand-logo);
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -393,25 +404,28 @@ body {
 
 .standings-text {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .standings-line1 {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .standings-rank {
   font-weight: 800;
-  font-size: var(--stand-font);
-  opacity: 0.95;
+  font-size: 0.8rem;
+  opacity: 0.9;
   flex: 0 0 auto;
 }
 
 .standings-team {
-  font-weight: 750;
-  font-size: var(--stand-font);
+  font-weight: 700;
+  font-size: 0.82rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -419,16 +433,11 @@ body {
 }
 
 .standings-line2 {
-  margin-top: 1px;
-  font-size: var(--stand-subfont);
+  font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.65);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.standings-dot {
-  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .standings-right {
@@ -438,23 +447,35 @@ body {
 
 .standings-pf {
   font-weight: 900;
-  font-size: 0.95rem; /* compact */
-  line-height: 1.1;
+  font-size: 0.9rem;
+  line-height: 1.05;
 }
 
 .standings-pf-label {
   font-size: 0.68rem;
   color: rgba(255, 255, 255, 0.6);
-  margin-top: 1px;
 }
 
-.empty-state {
-  padding: 10px 12px;
+.standings-empty {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* JSON output */
+
+.json-output {
+  margin: 0;
+  padding: 8px 10px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.85rem;
+  background: #050710;
+  color: #e5e5f5;
+  font-size: 0.75rem;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Responsive */
@@ -464,8 +485,16 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .json-panel {
-    max-height: 300px;
+  .right-side {
+    gap: 12px;
+  }
+
+  .standings-list {
+    max-height: 280px;
+  }
+
+  .json-output {
+    max-height: 280px;
   }
 }
 
