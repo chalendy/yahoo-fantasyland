@@ -170,9 +170,9 @@ app.get("/settings-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  DRAFT RESULTS RAW (NEW)
+//  DRAFT RESULTS RAW
 // -----------------------------
-app.get("/draftresults-raw", async (req, res) => {
+app.get("/draft-results-raw", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated." });
   }
@@ -185,45 +185,42 @@ app.get("/draftresults-raw", async (req, res) => {
     });
 
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    if (!apiRes.ok) {
+      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    }
 
     res.type("application/json").send(bodyText);
   } catch (err) {
-    console.error("Draftresults fetch error:", err);
+    console.error("Draft results fetch error:", err);
     res.status(500).json({ error: "Failed to fetch draft results" });
   }
 });
 
+
 // -----------------------------
-//  TEAMS ROSTERS RAW (NEW) - supports ?week=
-//  NOTE: This can be a BIG response (all teams + rosters)
+//  TEAM ROSTERS RAW
 // -----------------------------
-app.get("/teams-roster-raw", async (req, res) => {
+app.get("/rosters-raw", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated." });
   }
 
   try {
-    const week = req.query.week ? String(req.query.week) : null;
-
-    const url =
-      week && week.trim()
-        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
-            week
-          )}?format=json`
-        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
 
     const apiRes = await doFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    if (!apiRes.ok) {
+      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    }
 
     res.type("application/json").send(bodyText);
   } catch (err) {
-    console.error("Teams roster fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch teams roster" });
+    console.error("Rosters fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch team rosters" });
   }
 });
 
