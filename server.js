@@ -141,6 +141,38 @@ app.get("/standings-raw", async (req, res) => {
 });
 
 // -----------------------------
+//  LEAGUE SETTINGS (RAW)
+// -----------------------------
+app.get("/settings-raw", async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
+
+    const apiRes = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+
+    if (!apiRes.ok) {
+      console.error("Yahoo settings error:", apiRes.status, bodyText);
+      return res
+        .status(500)
+        .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+    }
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Settings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league settings" });
+  }
+});
+
+
+// -----------------------------
 //  FRONTEND STATIC FILES
 // -----------------------------
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
