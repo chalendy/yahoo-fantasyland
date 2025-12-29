@@ -18,13 +18,10 @@ const weekSelect = document.getElementById("weekSelect");
 let scoreboardData = null;
 let standingsData = null;
 
-// normalized standings rows (includes playoff_seed + team_id)
-let standingsRows = [];
+// Standings sorting state
+let standingsRows = []; // normalized rows
 let standingsSortMode = "yahoo"; // yahoo | rank | record | pf
 let standingsSortDir = "asc"; // asc | desc
-
-// map: team_id -> playoff_seed (number)
-let teamIdToSeed = new Map();
 
 // ---------- Helpers ----------
 function setStatus(msg) {
@@ -34,9 +31,7 @@ function setStatus(msg) {
 function pluckField(objArray, key) {
   if (!Array.isArray(objArray)) return null;
   for (const entry of objArray) {
-    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
-      return entry[key];
-    }
+    if (entry && Object.prototype.hasOwnProperty.call(entry, key)) return entry[key];
   }
   return null;
 }
@@ -65,7 +60,6 @@ if (authBtn) {
 // ---------- Week Dropdown ----------
 function buildWeekOptions({ startWeek, endWeek, selectedWeek }) {
   if (!weekSelect) return;
-
   weekSelect.innerHTML = "";
 
   const s = toNum(startWeek, 1);
@@ -113,9 +107,7 @@ if (weekSelect) {
 // ---------- API Loads ----------
 async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups: true }) {
   try {
-    const url = week
-      ? `${backendBase}/scoreboard?week=${encodeURIComponent(week)}`
-      : `${backendBase}/scoreboard`;
+    const url = week ? `${backendBase}/scoreboard?week=${encodeURIComponent(week)}` : `${backendBase}/scoreboard`;
 
     setStatus(week ? `Loading scoreboard (week ${week})...` : "Loading scoreboard...");
     if (jsonOutput) jsonOutput.textContent = "Loading...";
@@ -139,9 +131,10 @@ async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups
     const meta = getLeagueMetaFromScoreboard(data);
     const shownWeek = getScoreboardWeek(data) ?? meta.current_week;
 
+    // Header week label
     if (weekLabel && shownWeek != null) weekLabel.textContent = `Week ${shownWeek}`;
 
-    // Populate dropdown once, keep selection synced afterward
+    // Populate week dropdown once
     if (weekSelect && weekSelect.options.length === 0) {
       buildWeekOptions({
         startWeek: meta.start_week,
@@ -149,17 +142,18 @@ async function loadScoreboardForWeek(week, { renderMatchups } = { renderMatchups
         selectedWeek: shownWeek,
       });
     } else if (weekSelect && shownWeek != null) {
-      // keep dropdown in sync with what Yahoo actually returned
+      // Keep dropdown in sync with what we loaded
       weekSelect.value = String(shownWeek);
     }
 
+    // Render matchups if requested
     if (renderMatchups) {
       const matchups = extractMatchups(data);
       if (!matchups.length) {
         setStatus("No matchups found for this week.");
         if (matchupsContainer) matchupsContainer.innerHTML = "";
       } else {
-        renderMatchupsWithPlayoffGrouping(matchups, meta);
+        renderMatchups(matchups, { endWeek: meta.end_week });
         setStatus(`Loaded ${matchups.length} matchups.`);
       }
     } else {
@@ -197,15 +191,6 @@ async function loadStandings() {
 
     standingsData = data;
     standingsRows = extractStandingsRows(data);
-
-    // Build team_id -> seed map (for playoff labeling/grouping)
-    teamIdToSeed = new Map();
-    standingsRows.forEach((r) => {
-      if (r.teamId && r.playoffSeed != null) {
-        teamIdToSeed.set(String(r.teamId), toNum(r.playoffSeed, null));
-      }
-    });
-
     renderStandingsSection();
   } catch (err) {
     console.error("Standings fetch error:", err);
@@ -216,8 +201,7 @@ async function loadStandings() {
 // ---------- Scoreboard Parsing ----------
 function getLeagueMetaFromScoreboard(data) {
   const leagueArr = data?.fantasy_content?.league;
-  const meta = Array.isArray(leagueArr) ? leagueArr[0] : {};
-  return meta || {};
+  return Array.isArray(leagueArr) ? (leagueArr[0] || {}) : {};
 }
 
 function getScoreboardWeek(data) {
@@ -240,16 +224,17 @@ function extractMatchups(data) {
     if (!matchupsObj) return [];
 
     const weekNumber = scoreboard.week ?? leagueMeta.current_week;
-
     const result = [];
 
     Object.keys(matchupsObj)
       .filter((k) => k !== "count")
       .forEach((key) => {
         const matchupWrapper = matchupsObj[key];
-        const matchup = matchupWrapper.matchup;
-        const matchupInner = matchup?.["0"];
-        const teamsObj = matchupInner?.teams;
+        const matchup = matchupWrapper?.matchup;
+        const matchupObj = matchup?.["0"];
+        if (!matchupObj) return;
+
+        const teamsObj = matchupObj?.teams;
         if (!teamsObj) return;
 
         const team0 = teamsObj["0"]?.team;
@@ -264,11 +249,9 @@ function extractMatchups(data) {
         const teamAName = pluckField(team0Meta, "name") || "Unknown Team";
         const teamBName = pluckField(team1Meta, "name") || "Unknown Team";
 
-        const teamAId = pluckField(team0Meta, "team_id") || null;
-        const teamBId = pluckField(team1Meta, "team_id") || null;
-
         const teamALogoObj = pluckField(team0Meta, "team_logos");
         const teamBLogoObj = pluckField(team1Meta, "team_logos");
+
         const teamALogo = teamALogoObj?.[0]?.team_logo?.url ?? null;
         const teamBLogo = teamBLogoObj?.[0]?.team_logo?.url ?? null;
 
@@ -281,15 +264,15 @@ function extractMatchups(data) {
         const teamAProb = team0Stats?.win_probability ?? null;
         const teamBProb = team1Stats?.win_probability ?? null;
 
-        // THIS is where Yahoo actually puts it in your JSON:
-        const isPlayoffs = String(matchupInner?.is_playoffs ?? "0") === "1";
+        // IMPORTANT: flags live on matchupObj in Yahoo JSON
+        const isPlayoffs = String(matchupObj?.is_playoffs ?? "0") === "1";
+        const isConsolation = String(matchupObj?.is_consolation ?? "0") === "1";
 
         result.push({
           week: weekNumber,
-          playoff: isPlayoffs,
-          matchupInner,
+          isPlayoffs,
+          isConsolation,
           teamA: {
-            id: teamAId,
             name: teamAName,
             logo: teamALogo,
             score: teamAScore,
@@ -297,7 +280,6 @@ function extractMatchups(data) {
             winProbability: teamAProb,
           },
           teamB: {
-            id: teamBId,
             name: teamBName,
             logo: teamBLogo,
             score: teamBScore,
@@ -314,91 +296,22 @@ function extractMatchups(data) {
   }
 }
 
-// ---------- Playoff Grouping (by standings playoff_seed) ----------
-function playoffStageForWeek(week, playoffWeekStart) {
+// ---------- Playoff Label ----------
+function playoffLabelForWeek(week, endWeek) {
   const w = toNum(week, null);
-  const start = toNum(playoffWeekStart, null);
-  if (w == null || start == null) return "Playoffs";
+  const e = toNum(endWeek, null);
 
-  const offset = w - start; // 0 = first playoff week
-  if (offset <= 0) return "Quarterfinal";
-  if (offset === 1) return "Semifinal";
-  return "Final";
-}
-
-function classifyPlayoffMatchupBySeeds(m) {
-  // Uses standings playoff_seed
-  const aSeed = m.teamA?.id != null ? teamIdToSeed.get(String(m.teamA.id)) : null;
-  const bSeed = m.teamB?.id != null ? teamIdToSeed.get(String(m.teamB.id)) : null;
-
-  // If we can't determine seeds, keep it generic
-  if (aSeed == null || bSeed == null) return { group: "Playoffs", seeds: { aSeed, bSeed } };
-
-  const minS = Math.min(aSeed, bSeed);
-  const maxS = Math.max(aSeed, bSeed);
-
-  if (minS === 1 && maxS === 2) return { group: "Championship", seeds: { aSeed, bSeed } };
-  if (minS === 3 && maxS === 4) return { group: "3rd Place", seeds: { aSeed, bSeed } };
-  if (minS === 5 && maxS === 6) return { group: "5th Place", seeds: { aSeed, bSeed } };
-
-  return { group: "Playoffs", seeds: { aSeed, bSeed } };
-}
-
-function renderMatchupsWithPlayoffGrouping(matchups, leagueMeta) {
-  if (!matchupsContainer) return;
-  matchupsContainer.innerHTML = "";
-
-  const playoffWeekStart = leagueMeta?.matchup_week; // Yahoo gives you this (e.g. 15/17)
-
-  const isPlayoffWeek = matchups.some((m) => m.playoff);
-
-  if (!isPlayoffWeek) {
-    // regular season: render plain cards, no grouping headers
-    renderMatchupCards(matchups, { playoffWeekStart });
-    return;
-  }
-
-  // group playoff matchups
-  const groups = new Map(); // name -> array
-  for (const m of matchups) {
-    if (!m.playoff) {
-      if (!groups.has("Matchups")) groups.set("Matchups", []);
-      groups.get("Matchups").push(m);
-      continue;
-    }
-    const { group } = classifyPlayoffMatchupBySeeds(m);
-    if (!groups.has(group)) groups.set(group, []);
-    groups.get(group).push(m);
-  }
-
-  // render in a nice order
-  const order = ["Championship", "3rd Place", "5th Place", "Playoffs", "Matchups"];
-
-  order.forEach((name) => {
-    const arr = groups.get(name);
-    if (!arr || arr.length === 0) return;
-
-    // group header
-    const header = document.createElement("div");
-    header.className = "matchups-group-header";
-
-    const stage = playoffStageForWeek(arr[0]?.week, playoffWeekStart);
-    const right = name === "Matchups" ? "" : stage;
-
-    header.innerHTML = `
-      <span class="matchups-group-title">${escapeHtml(name)}</span>
-      <span class="matchups-group-sub">${right ? escapeHtml(right) : ""}</span>
-    `;
-    matchupsContainer.appendChild(header);
-
-    // cards (keep your existing look)
-    renderMatchupCards(arr, { playoffWeekStart });
-  });
+  if (w == null || e == null) return "Playoffs";
+  if (w === e - 2) return "Quarterfinal";
+  if (w === e - 1) return "Semifinal";
+  if (w === e) return "Final";
+  return "Playoffs";
 }
 
 // ---------- Rendering: Matchups ----------
-function renderMatchupCards(matchups, { playoffWeekStart } = {}) {
+function renderMatchupCards(matchups, { endWeek, showPlayoffTag } = {}) {
   if (!matchupsContainer) return;
+  const frag = document.createDocumentFragment();
 
   matchups.forEach((m) => {
     const card = document.createElement("article");
@@ -407,14 +320,16 @@ function renderMatchupCards(matchups, { playoffWeekStart } = {}) {
     const teamAProbPct = m.teamA.winProbability != null ? Math.round(m.teamA.winProbability * 100) : null;
     const teamBProbPct = m.teamB.winProbability != null ? Math.round(m.teamB.winProbability * 100) : null;
 
-    // show tag only in playoffs
-    const showPlayoffTag = !!m.playoff;
-    const tagText = showPlayoffTag ? playoffStageForWeek(m.week, playoffWeekStart) : "";
+    const tagText = playoffLabelForWeek(m.week, endWeek);
 
     card.innerHTML = `
       <div class="matchup-header-row">
-        <span></span>
-        ${showPlayoffTag ? `<span class="matchup-tag">${escapeHtml(tagText)}</span>` : `<span></span>`}
+        <span class="matchup-week-label"></span>
+        ${
+          showPlayoffTag
+            ? `<span class="matchup-tag">${escapeHtml(tagText)}</span>`
+            : `<span></span>`
+        }
       </div>
 
       <div class="matchup-body">
@@ -460,8 +375,43 @@ function renderMatchupCards(matchups, { playoffWeekStart } = {}) {
       </div>
     `;
 
-    matchupsContainer.appendChild(card);
+    frag.appendChild(card);
   });
+
+  matchupsContainer.appendChild(frag);
+}
+
+function renderMatchups(matchups, { endWeek } = {}) {
+  if (!matchupsContainer) return;
+  matchupsContainer.innerHTML = "";
+
+  const hasAnyPlayoffs = matchups.some((m) => m.isPlayoffs || m.isConsolation);
+
+  // Regular season: just render normally (no tag)
+  if (!hasAnyPlayoffs) {
+    renderMatchupCards(matchups, { endWeek, showPlayoffTag: false });
+    return;
+  }
+
+  // Playoff weeks: split into sections
+  const playoffs = matchups.filter((m) => m.isPlayoffs && !m.isConsolation);
+  const consolation = matchups.filter((m) => m.isConsolation);
+
+  if (playoffs.length) {
+    matchupsContainer.insertAdjacentHTML(
+      "beforeend",
+      `<div class="matchups-section"><div class="matchups-section-title">Playoffs</div></div>`
+    );
+    renderMatchupCards(playoffs, { endWeek, showPlayoffTag: true });
+  }
+
+  if (consolation.length) {
+    matchupsContainer.insertAdjacentHTML(
+      "beforeend",
+      `<div class="matchups-section"><div class="matchups-section-title">Consolation</div></div>`
+    );
+    renderMatchupCards(consolation, { endWeek, showPlayoffTag: false });
+  }
 }
 
 // ---------- Standings Parsing ----------
@@ -486,9 +436,7 @@ function extractStandingsRows(data) {
         const points = team[1]?.team_points?.total ?? null;
         const standings = team[2]?.team_standings ?? {};
 
-        const teamId = pluckField(meta, "team_id") || null;
         const name = pluckField(meta, "name") || "Unknown Team";
-
         const logoObj = pluckField(meta, "team_logos");
         const logo = logoObj?.[0]?.team_logo?.url ?? null;
 
@@ -496,8 +444,6 @@ function extractStandingsRows(data) {
         const managerNickname = managersObj?.[0]?.manager?.nickname ?? "";
 
         const rank = toNum(standings.rank, 999);
-        const playoffSeedRaw = standings.playoff_seed ?? null;
-
         const wins = toNum(standings?.outcome_totals?.wins, 0);
         const losses = toNum(standings?.outcome_totals?.losses, 0);
         const ties = toNum(standings?.outcome_totals?.ties, 0);
@@ -505,8 +451,6 @@ function extractStandingsRows(data) {
 
         rows.push({
           yahooIndex: rows.length,
-          teamId,
-          playoffSeed: playoffSeedRaw != null ? toNum(playoffSeedRaw, null) : null,
           rank,
           name,
           logo,
@@ -548,9 +492,8 @@ function applyStandingsSort(rows) {
 }
 
 function setStandingsSort(mode) {
-  if (standingsSortMode === mode) {
-    standingsSortDir = standingsSortDir === "asc" ? "desc" : "asc";
-  } else {
+  if (standingsSortMode === mode) standingsSortDir = standingsSortDir === "asc" ? "desc" : "asc";
+  else {
     standingsSortMode = mode;
     standingsSortDir = "asc";
   }
@@ -583,7 +526,11 @@ function renderStandingsSection() {
       return `
         <div class="standings-row">
           <div class="s-left">
-            ${t.logo ? `<img class="s-logo" src="${t.logo}" alt="${escapeHtml(t.name)}" />` : `<div class="s-logo s-logo--ph"></div>`}
+            ${
+              t.logo
+                ? `<img class="s-logo" src="${t.logo}" alt="${escapeHtml(t.name)}" />`
+                : `<div class="s-logo s-logo--ph"></div>`
+            }
             <div class="s-namewrap">
               <div class="s-topline">
                 <span class="s-rank">#${t.rank}</span>
@@ -594,7 +541,7 @@ function renderStandingsSection() {
           </div>
 
           <div class="s-right">
-            <div class="s-pf">${Number(t.pf).toFixed(2)}</div>
+            <div class="s-pf">${t.pf.toFixed(2)}</div>
             <div class="s-pflabel">PF</div>
           </div>
         </div>
@@ -605,16 +552,13 @@ function renderStandingsSection() {
   standingsContainer.innerHTML = controls + `<div class="standings-ultra">${list}</div>`;
 
   standingsContainer.querySelectorAll(".standings-sort-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const mode = btn.getAttribute("data-sort");
-      setStandingsSort(mode);
-    });
+    btn.addEventListener("click", () => setStandingsSort(btn.getAttribute("data-sort")));
   });
 }
 
 // ---------- Auto Load ----------
 async function autoBoot() {
-  await loadStandings();                 // builds seed map
+  await loadStandings();
   await loadScoreboardForWeek(null, { renderMatchups: true });
 }
 
