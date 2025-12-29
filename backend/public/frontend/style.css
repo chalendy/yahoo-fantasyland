@@ -151,10 +151,10 @@ body {
 /* Week dropdown */
 .week-dropdown {
   background: var(--bg-elevated-soft);
-  color: var(--text);
   border: 1px solid var(--border-subtle);
+  color: var(--text);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 0.85rem;
   outline: none;
 }
@@ -166,8 +166,15 @@ body {
   gap: 16px;
 }
 
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .matchups-panel,
-.json-panel {
+.json-panel,
+.standings-panel {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -175,12 +182,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.right-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .panel-header {
@@ -210,7 +211,7 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-/* Matchups */
+/* Matchups list */
 .matchups-grid {
   display: flex;
   flex-direction: column;
@@ -220,25 +221,38 @@ body {
   padding-right: 4px;
 }
 
-.matchups-section {
-  margin-top: 2px;
+/* Playoff section headers */
+.matchups-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 2px 2px;
 }
 
 .matchups-section-title {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 6px 6px 2px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  opacity: 0.95;
 }
 
+.matchups-section-pill {
+  font-size: 0.75rem;
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.12);
+  border-radius: 999px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 142, 60, 0.22);
+}
+
+/* Matchup card */
 .matchup-card {
   background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
               radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
               var(--bg-elevated-soft);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  padding: 10px 12px;
+  padding: 10px 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -260,6 +274,7 @@ body {
   color: var(--text-muted);
 }
 
+/* Body layout */
 .matchup-body {
   display: grid;
   grid-template-columns: minmax(0, 6fr) auto minmax(0, 6fr);
@@ -316,6 +331,7 @@ body {
   font-weight: 700;
 }
 
+/* VS middle column */
 .vs-column {
   display: flex;
   align-items: center;
@@ -329,17 +345,20 @@ body {
   font-size: 0.8rem;
 }
 
-/* Standings panel */
-.standings-panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* JSON output */
+.json-output {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: #050710;
+  color: #e5e5f5;
+  font-size: 0.75rem;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Standings header */
 .standings-header {
   display: flex;
   align-items: center;
@@ -359,49 +378,47 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-.standings-empty {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.65);
-  padding: 6px 2px;
-}
-
+/* Standings ultra-compact */
 .standings-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-/* Standings sort buttons */
+.standings-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .standings-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 0 6px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
 .standings-sort-btn {
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text);
+  border-radius: 999px;
   padding: 5px 10px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
 .standings-sort-btn.active {
-  background: var(--accent-soft);
+  background: rgba(127, 90, 240, 0.18);
   border-color: rgba(127, 90, 240, 0.35);
-  color: rgba(255, 255, 255, 0.9);
 }
 
 .standings-sort-dir {
+  font-size: 0.75rem;
+  color: var(--text-muted);
   margin-left: auto;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.55);
 }
 
-/* ULTRA-COMPACT standings rows */
 .standings-ultra {
   display: flex;
   flex-direction: column;
@@ -413,10 +430,10 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
 }
 
 .s-left {
@@ -431,20 +448,17 @@ body {
   height: 26px;
   border-radius: 999px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
   flex: 0 0 auto;
 }
 
 .s-logo--ph {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255,255,255,0.05);
 }
 
 .s-namewrap {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
 }
 
 .s-topline {
@@ -456,7 +470,7 @@ body {
 
 .s-rank {
   font-weight: 800;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   opacity: 0.9;
 }
 
@@ -466,11 +480,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 220px;
 }
 
 .s-sub {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.65);
+  margin-top: 1px;
 }
 
 .s-right {
@@ -479,36 +495,19 @@ body {
 }
 
 .s-pf {
-  font-weight: 800;
+  font-weight: 900;
   font-size: 0.85rem;
 }
 
 .s-pflabel {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* JSON output */
-.json-output {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  background: #050710;
-  color: #e5e5f5;
-  font-size: 0.75rem;
-  max-height: 430px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.6);
 }
 
 /* Responsive */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .json-panel {
-    max-height: 300px;
   }
 }
 
