@@ -170,6 +170,57 @@ app.get("/settings-raw", async (req, res) => {
 });
 
 // -----------------------------
+//  DRAFT RESULTS RAW (NEW)
+// -----------------------------
+app.get("/draftresults-raw", async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Draftresults fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch draft results" });
+  }
+});
+
+// -----------------------------
+//  TEAMS + ROSTERS RAW (NEW)
+// -----------------------------
+app.get("/teams-rosters-raw", async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Teams/roster fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch teams rosters" });
+  }
+});
+
+
+// -----------------------------
 //  FRONTEND STATIC FILES
 // -----------------------------
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
