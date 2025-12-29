@@ -34,6 +34,7 @@ app.get("/auth/start", (req, res) => {
   authURL.searchParams.set("redirect_uri", REDIRECT_URI);
   authURL.searchParams.set("response_type", "code");
   authURL.searchParams.set("language", "en-us");
+
   res.redirect(authURL.toString());
 });
 
@@ -70,6 +71,7 @@ app.get("/auth/callback", async (req, res) => {
 
     accessToken = tokenData.access_token;
     console.log("OAuth Success: token received.");
+
     res.redirect("/");
   } catch (err) {
     console.error("OAuth callback failure:", err);
@@ -78,7 +80,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD (supports ?week=)
+//  SCOREBOARD (week-aware)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
@@ -87,22 +89,16 @@ app.get("/scoreboard", async (req, res) => {
 
   try {
     const week = req.query.week ? String(req.query.week) : null;
+    const weekParam = week ? `;week=${encodeURIComponent(week)}` : "";
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekParam}?format=json`;
 
-    // Yahoo uses semicolon params: scoreboard;week=17
-    const yahooPath = week
-      ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard;week=${encodeURIComponent(
-          week
-        )}?format=json`
-      : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
-
-    const apiRes = await fetch(yahooPath, {
+    const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
     if (!apiRes.ok) {
-      console.error("Yahoo scoreboard error:", apiRes.status, bodyText);
-      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
+      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
     }
 
     res.json(JSON.parse(bodyText));
@@ -113,7 +109,7 @@ app.get("/scoreboard", async (req, res) => {
 });
 
 // -----------------------------
-//  STANDINGS RAW
+//  STANDINGS (raw passthrough)
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
   if (!accessToken) {
@@ -122,17 +118,11 @@ app.get("/standings-raw", async (req, res) => {
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
-
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) {
-      console.error("Yahoo standings error:", apiRes.status, bodyText);
-      return res.status(500).json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
-    }
-
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Standings fetch error:", err);
@@ -141,7 +131,7 @@ app.get("/standings-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  LEAGUE SETTINGS (RAW)
+//  ✅ SETTINGS (raw passthrough)
 // -----------------------------
 app.get("/settings-raw", async (req, res) => {
   if (!accessToken) {
@@ -150,20 +140,11 @@ app.get("/settings-raw", async (req, res) => {
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
-
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
-
-    if (!apiRes.ok) {
-      console.error("Yahoo settings error:", apiRes.status, bodyText);
-      return res
-        .status(500)
-        .json({ error: "Yahoo API error", status: apiRes.status, body: bodyText });
-    }
-
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Settings fetch error:", err);
@@ -171,14 +152,12 @@ app.get("/settings-raw", async (req, res) => {
   }
 });
 
-
 // -----------------------------
 //  FRONTEND STATIC FILES
 // -----------------------------
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 app.use(express.static(frontendPath));
 
-// IMPORTANT: keep API routes above this catch-all
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
