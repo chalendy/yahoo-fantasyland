@@ -68,7 +68,6 @@ app.get("/auth/callback", async (req, res) => {
 
     accessToken = tokenData.access_token;
     console.log("OAuth Success: token received.");
-
     res.redirect("/");
   } catch (err) {
     console.error("OAuth callback failure:", err);
@@ -85,11 +84,11 @@ app.get("/scoreboard", async (req, res) => {
   }
 
   try {
-    const week = req.query.week ? String(req.query.week) : null;
+    const week = req.query.week ? String(req.query.week).trim() : "";
+    const weekSuffix = week ? `;week=${encodeURIComponent(week)}` : "";
 
-    // Yahoo expects ;week=X (not ?week=X) on the fantasy/v2 resource
-    const weekSegment = week ? `;week=${encodeURIComponent(week)}` : "";
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSegment}?format=json`;
+    // IMPORTANT: Yahoo wants ;week=X in the path, not ?week=X
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSuffix}?format=json`;
 
     const apiRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -112,9 +111,7 @@ app.get("/scoreboard", async (req, res) => {
 //  STANDINGS RAW
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
-  if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated." });
-  }
+  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
@@ -146,9 +143,6 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// -----------------------------
-//  START SERVER
-// -----------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
