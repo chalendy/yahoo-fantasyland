@@ -43,7 +43,9 @@ app.get("/auth/start", (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
 
-  if (!code) return res.status(400).send("Missing authorization code.");
+  if (!code) {
+    return res.status(400).send("Missing authorization code.");
+  }
 
   try {
     const tokenResponse = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
@@ -84,13 +86,16 @@ app.get("/scoreboard", async (req, res) => {
   }
 
   try {
-    const week = req.query.week ? String(req.query.week).trim() : "";
-    const weekSuffix = week ? `;week=${encodeURIComponent(week)}` : "";
+    const week = req.query.week ? String(req.query.week) : null;
 
-    // IMPORTANT: Yahoo wants ;week=X in the path, not ?week=X
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard${weekSuffix}?format=json`;
+    // Yahoo uses semicolon params: scoreboard;week=17
+    const yahooPath = week
+      ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard;week=${encodeURIComponent(
+          week
+        )}?format=json`
+      : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
 
-    const apiRes = await fetch(url, {
+    const apiRes = await fetch(yahooPath, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -111,7 +116,9 @@ app.get("/scoreboard", async (req, res) => {
 //  STANDINGS RAW
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
-  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
@@ -139,10 +146,14 @@ app.get("/standings-raw", async (req, res) => {
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
 app.use(express.static(frontendPath));
 
+// IMPORTANT: keep API routes above this catch-all
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
+// -----------------------------
+//  START SERVER
+// -----------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
