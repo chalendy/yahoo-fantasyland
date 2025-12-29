@@ -195,15 +195,23 @@ app.get("/draftresults-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  TEAMS + ROSTERS RAW (NEW)
+//  TEAMS ROSTERS RAW (NEW) - supports ?week=
+//  NOTE: This can be a BIG response (all teams + rosters)
 // -----------------------------
-app.get("/teams-rosters-raw", async (req, res) => {
+app.get("/teams-roster-raw", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated." });
   }
 
   try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+    const week = req.query.week ? String(req.query.week) : null;
+
+    const url =
+      week && week.trim()
+        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
+            week
+          )}?format=json`
+        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
 
     const apiRes = await doFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -214,8 +222,8 @@ app.get("/teams-rosters-raw", async (req, res) => {
 
     res.type("application/json").send(bodyText);
   } catch (err) {
-    console.error("Teams/roster fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch teams rosters" });
+    console.error("Teams roster fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch teams roster" });
   }
 });
 
