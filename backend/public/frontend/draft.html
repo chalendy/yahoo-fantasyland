@@ -1,39 +1,228 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Draft Board</title>
-    <link rel="stylesheet" href="/draft.css" />
+    <title>Draft Board • Fantasy Land 2025</title>
+
+    <!-- Use your existing theme -->
+    <link rel="stylesheet" href="/styles.css" />
+
+    <!-- Small draft-board-specific additions -->
+    <style>
+      /* Board wrapper */
+      .draft-board-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* Sticky header + grid */
+      .draft-grid-header {
+        display: grid;
+        grid-template-columns: 70px repeat says repeat(var(--cols), minmax(180px, 1fr));
+        gap: 10px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--bg-elevated);
+        padding-bottom: 6px;
+      }
+
+      .draft-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .draft-row {
+        display: grid;
+        grid-template-columns: 70px repeat(var(--cols), minmax(180px, 1fr));
+        gap: 10px;
+      }
+
+      .draft-corner,
+      .draft-team-header,
+      .draft-round-cell,
+      .draft-pick-cell {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--bg-elevated-soft);
+        padding: 10px 12px;
+      }
+
+      .draft-corner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: var(--text-muted);
+        background: #0b0d1a;
+      }
+
+      .draft-team-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 55%),
+                    var(--bg-elevated-soft);
+      }
+
+      .draft-team-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .draft-team-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .draft-team-meta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .draft-team-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        flex: 0 0 auto;
+      }
+
+      .draft-round-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: var(--accent-strong);
+        background: rgba(255, 142, 60, 0.10);
+      }
+
+      /* Pick cell */
+      .draft-pick-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 50%),
+                    radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 55%),
+                    var(--bg-elevated-soft);
+        min-height: 74px;
+      }
+
+      .draft-pick-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .draft-pick-num {
+        font-weight: 800;
+        color: var(--text);
+      }
+
+      .draft-pick-meta {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: right;
+      }
+
+      .draft-player-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+
+      .draft-pick-empty {
+        color: var(--text-muted);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        opacity: 0.8;
+      }
+
+      /* Keeper badge */
+      .keeper-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(127, 90, 240, 0.18);
+        color: #d9d2ff;
+        border: 1px solid rgba(127, 90, 240, 0.35);
+        white-space: nowrap;
+      }
+
+      .draft-pick-cell.is-keeper {
+        border-color: rgba(127, 90, 240, 0.35);
+        box-shadow: 0 0 0 1px rgba(127, 90, 240, 0.12) inset;
+      }
+
+      /* Make the board scroll on smaller screens */
+      .draft-scroll {
+        overflow: auto;
+        padding-bottom: 8px;
+      }
+
+      @media (max-width: 900px) {
+        .draft-scroll {
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-lg);
+          background: rgba(0,0,0,0.10);
+          padding: 10px;
+        }
+      }
+    </style>
   </head>
-<body>
-    <div class="draft-shell">
-      <header class="draft-header">
+
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
         <div>
           <h1>Draft Board</h1>
           <p class="subtitle">Fantasy Land 2025</p>
         </div>
 
-        <div class="draft-actions">
-          <a class="btn btn-secondary" href="/index.html">Back to Matchups</a>
+        <div class="button-row">
+          <a class="btn btn-secondary" href="/">Back to Matchups</a>
           <button class="btn btn-primary" id="reloadBtn">Reload</button>
         </div>
       </header>
 
-      <main class="draft-card">
-        <div class="draft-title-row">
+      <main class="app-main">
+        <section class="controls-card">
           <h2>Draft Board</h2>
-          <p class="draft-subtitle">Columns are the Round 1 draft order. Rows are rounds.</p>
-        </div>
+          <p class="hint">Columns are the Round 1 draft order. Rows are rounds. Keepers are marked.</p>
+          <p class="status-message" id="status"></p>
+        </section>
 
-        <p id="status"></p>
-
-        <div class="draft-board-wrap">
-          <div id="draftBoard"></div>
-        </div>
+        <section class="draft-board-wrap">
+          <div class="draft-scroll">
+            <div id="draftBoard"></div>
+          </div>
+        </section>
       </main>
 
-      <footer class="draft-footer">Powered by Yahoo Fantasy API</footer>
+      <footer class="app-footer">Powered by Yahoo Fantasy API</footer>
     </div>
 
     <script src="/draft.js"></script>
