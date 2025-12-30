@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Draft Board</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>Draft Board</h1>
+          <p class="subtitle">Fantasy Land 2025</p>
+        </div>
+        <div class="button-row">
+          <a class="btn btn-secondary" href="/">Back to Matchups</a>
+          <button id="reloadBtn" class="btn btn-primary">Reload</button>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section class="controls-card">
+          <h2>Draft Board</h2>
+          <p class="hint">Columns are the Round 1 draft order. Rows are rounds.</p>
+          <p id="status" class="status-message"></p>
+        </section>
+
+        <section class="draft-board-card">
+          <div id="draftBoard" class="draft-board"></div>
+        </section>
+      </main>
+
+      <footer class="app-footer">Powered by Yahoo Fantasy API</footer>
+    </div>
+
+    <script type="module" src="/draft.js"></script>
+  </body>
+</html>
