@@ -15,9 +15,22 @@ function el(tag, className, text) {
   return n;
 }
 
-function safeTeamCode(abbr) {
-  if (!abbr) return "";
-  return String(abbr).trim();
+// If Yahoo couldn't map player_key -> real player metadata, we assume it's a keeper slot.
+// (Keepers can be dropped later, so roster lookup isn't reliable.)
+function isKeeperPick(pick) {
+  if (!pick) return false;
+
+  const key = String(pick.player_key || "");
+  const name = String(pick.player_name || "");
+
+  const nameLooksLikeKey =
+    name === key ||
+    /^(\d+\.)?p\.\d+$/i.test(name) ||           // "461.p.40899" or "p.40899"
+    /(^|\.)(p)\.\d+$/i.test(name);              // catches "461.p.12345"
+
+  const missingMeta = !pick.player_pos && !pick.player_team;
+
+  return nameLooksLikeKey || missingMeta;
 }
 
 async function loadDraftBoard() {
@@ -26,7 +39,7 @@ async function loadDraftBoard() {
 
   let data;
   try {
-    const res = await fetch("/draftboard-data", { headers: { "Accept": "application/json" } });
+    const res = await fetch("/draftboard-data", { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch (e) {
@@ -35,7 +48,7 @@ async function loadDraftBoard() {
     return;
   }
 
-  const { draftOrder, rounds, meta, teamsByKey } = data;
+  const { draftOrder, rounds, meta } = data || {};
   if (!draftOrder?.length || !rounds?.length) {
     setStatus("Draft data looks empty.");
     return;
@@ -49,44 +62,29 @@ async function loadDraftBoard() {
     byRoundTeam.set(r.round, m);
   }
 
-  // Outer wrapper grid list
+  // Grid wrapper
   const grid = el("div", "draft-grid");
-  grid.style.setProperty("--cols", String(draftOrder.length));
+  grid.style.setProperty("--cols", String(draftOrder.length + 1)); // +1 for round column
 
   // Header row
   const header = el("div", "draft-grid-header");
-  header.style.setProperty("--cols", String(draftOrder.length));
 
+  // top-left corner cell
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
-    const t = teamsByKey?.[teamKey];
     const th = el("div", "draft-team-header");
-
-    const metaWrap = el("div", "draft-team-meta");
-    metaWrap.appendChild(el("div", "draft-team-name", t?.name || teamKey.replace(/^.*\.t\./, "T")));
-    metaWrap.appendChild(el("div", "draft-team-sub", t?.manager ? `@${t.manager}` : teamKey.replace(/^.*\.t\./, "Team ")));
-
-    th.appendChild(metaWrap);
-
-    if (t?.logo_url) {
-      const img = document.createElement("img");
-      img.className = "draft-team-logo";
-      img.src = t.logo_url;
-      img.alt = t?.name || "Team";
-      th.appendChild(img);
-    }
-
+    th.appendChild(el("div", "draft-team-key", teamKey.replace(/^.*\.t\./, "T")));
     header.appendChild(th);
   }
 
-  boardEl.appendChild(header);
+  grid.appendChild(header);
 
-  // Rows: rounds
+  // Body: rounds
   for (let r = 1; r <= meta.maxRound; r++) {
     const row = el("div", "draft-row");
-    row.style.setProperty("--cols", String(draftOrder.length));
 
+    // Round label
     row.appendChild(el("div", "draft-round-cell", `R${r}`));
 
     const map = byRoundTeam.get(r) || new Map();
@@ -98,31 +96,26 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
+        const keeper = isKeeperPick(pick);
+
+        // top line: pick # + meta + optional keeper tag
         const top = el("div", "draft-pick-top");
 
-        // Left: pick #
         top.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-        // Right: keeper badge OR pos/team meta
-        const right = el("div", "draft-pick-meta");
+        const metaText = (pick.player_pos || "") + (pick.player_team ? ` · ${pick.player_team}` : "");
+        top.appendChild(el("div", "draft-pick-meta", metaText || "—"));
 
-        if (pick.is_keeper) {
-          const badge = el("span", "keeper-badge", "Keeper");
-          badge.title = "Kept from last season";
-          right.appendChild(badge);
+        if (keeper) {
+          top.appendChild(el("div", "draft-keeper-tag", "Keeper"));
           cell.classList.add("is-keeper");
-        } else {
-          const pos = pick.player_pos || "";
-          const team = safeTeamCode(pick.player_team);
-          right.textContent = `${pos}${pos && team ? " · " : ""}${team}`;
         }
 
-        top.appendChild(right);
         cell.appendChild(top);
 
-        // Name
-        const name = pick.player_name || pick.player_key || "Unknown";
-        cell.appendChild(el("div", "draft-player-name", name));
+        // name line (if unmapped, show something nicer than "461.p.x")
+        const displayName = keeper ? "Keeper (unmapped)" : (pick.player_name || "Unknown");
+        cell.appendChild(el("div", "draft-player-name", displayName));
       }
 
       row.appendChild(cell);
