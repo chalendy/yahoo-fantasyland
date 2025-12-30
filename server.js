@@ -211,156 +211,220 @@ app.get("/rosters-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  DRAFTBOARD DATA (normalized for draft.js)
-//  GET /draftboard-data?week=17
+//  DRAFTBOARD DATA (draftresults + rosters + fallback players lookup)
 // -----------------------------
 app.get("/draftboard-data", async (req, res) => {
-  if (!requireAuth(req, res)) return;
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
 
   try {
-    const week = req.query.week ? String(req.query.week) : null;
-
+    // 1) Pull draft results
     const draftUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
-    const rosterUrl =
-      week && week.trim()
-        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
-            week
-          )}?format=json`
-        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
-
-    const [draftRes, rosterRes] = await Promise.all([
-      doFetch(draftUrl, { headers: { Authorization: `Bearer ${accessToken}` } }),
-      doFetch(rosterUrl, { headers: { Authorization: `Bearer ${accessToken}` } }),
-    ]);
-
+    const draftRes = await doFetch(draftUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const draftText = await draftRes.text();
-    const rosterText = await rosterRes.text();
-
-    if (!draftRes.ok) return res.status(500).json({ error: "Yahoo API error (draft)", body: draftText });
-    if (!rosterRes.ok) return res.status(500).json({ error: "Yahoo API error (rosters)", body: rosterText });
+    if (!draftRes.ok) return res.status(500).json({ error: "Yahoo draftresults error", body: draftText });
 
     const draftJson = JSON.parse(draftText);
+
+    // 2) Pull rosters (for player metadata)
+    const rosterUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+    const rosterRes = await doFetch(rosterUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const rosterText = await rosterRes.text();
+    if (!rosterRes.ok) return res.status(500).json({ error: "Yahoo roster error", body: rosterText });
+
     const rosterJson = JSON.parse(rosterText);
 
-    // -------- Parse Draft Results --------
-    const draftResultsObj = draftJson?.fantasy_content?.league?.[1]?.draft_results;
-    const totalPicks = Number(draftResultsObj?.count || 0);
+    // -----------------------------
+    // Helpers to safely walk Yahoo JSON
+    // -----------------------------
+    const safeArr = (v) => (Array.isArray(v) ? v : []);
+    const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
 
-    const draftPicks = [];
-    if (draftResultsObj) {
-      for (const [k, v] of Object.entries(draftResultsObj)) {
+    function extractDraftResults(draftRoot) {
+      // draftRoot.fantasy_content.league[1].draft_results
+      const league = safeArr(draftRoot?.fantasy_content?.league);
+      const draftBlock = league[1]?.draft_results;
+      if (!draftBlock || !isObj(draftBlock)) return [];
+
+      const out = [];
+      for (const k of Object.keys(draftBlock)) {
         if (k === "count") continue;
-        const dr = v?.draft_result;
-        if (dr) {
-          draftPicks.push({
-            pick: Number(dr.pick),
-            round: Number(dr.round),
-            team_key: String(dr.team_key),
-            player_key: String(dr.player_key),
-          });
-        }
+        const dr = draftBlock[k]?.draft_result;
+        if (!dr) continue;
+        out.push({
+          pick: Number(dr.pick),
+          round: Number(dr.round),
+          team_key: dr.team_key,
+          player_key: dr.player_key,
+        });
       }
+
+      // sort by pick overall
+      out.sort((a, b) => a.pick - b.pick);
+      return out;
     }
 
-    draftPicks.sort((a, b) => a.pick - b.pick);
+    function extractPlayersFromRosters(rosterRoot) {
+      // rosterRoot.fantasy_content.league[1].teams
+      const league = safeArr(rosterRoot?.fantasy_content?.league);
+      const teamsBlock = league[1]?.teams;
+      const playerMap = new Map(); // player_key -> { name, pos, teamAbbr }
 
-    const maxRound = draftPicks.reduce((m, p) => Math.max(m, p.round), 0);
+      if (!teamsBlock || !isObj(teamsBlock)) return playerMap;
 
-    // draftOrder = round 1 team order (pick 1..N)
-    const round1 = draftPicks.filter((p) => p.round === 1).sort((a, b) => a.pick - b.pick);
-    const draftOrder = round1.map((p) => p.team_key);
+      for (const tKey of Object.keys(teamsBlock)) {
+        if (tKey === "count") continue;
 
-    // -------- Build player lookup from rosters (best-effort) --------
-    // NOTE: roster is "current roster for week", so trades can affect matching.
-    // We'll still use it to get names/pos/team when possible.
-    const playerByKey = new Map();
+        const teamNode = teamsBlock[tKey]?.team;
+        // teamNode is [ teamMetaArray, { roster: ... } ]
+        const rosterObj = teamNode?.[1]?.roster;
+        if (!rosterObj || !isObj(rosterObj)) continue;
 
-    const teamsObj = rosterJson?.fantasy_content?.league?.[1]?.teams;
-    const teamsByKey = {};
+        // rosterObj has numeric keys for players blocks
+        for (const rk of Object.keys(rosterObj)) {
+          if (!/^\d+$/.test(rk)) continue;
+          const playersBlock = rosterObj[rk]?.players;
+          if (!playersBlock || !isObj(playersBlock)) continue;
 
-    if (teamsObj) {
-      for (const [k, v] of Object.entries(teamsObj)) {
-        if (k === "count") continue;
+          for (const pk of Object.keys(playersBlock)) {
+            if (pk === "count") continue;
+            const playerNode = playersBlock[pk]?.player;
+            if (!playerNode) continue;
 
-        const teamArr = v?.team;
-        if (!Array.isArray(teamArr)) continue;
+            const meta = playerNode[0]; // array of objects
+            const playerKeyObj = meta?.find((x) => x && x.player_key)?.player_key;
+            const nameObj = meta?.find((x) => x && x.name)?.name;
+            const displayPos = meta?.find((x) => x && x.display_position)?.display_position;
+            const teamAbbr = meta?.find((x) => x && x.editorial_team_abbr)?.editorial_team_abbr;
 
-        const metaArr = teamArr[0] || [];
-        const rosterBlock = teamArr[1]?.roster;
-
-        const teamKey = metaArr?.find?.((x) => x?.team_key)?.team_key || metaArr?.[0]?.team_key;
-        const teamName = metaArr?.find?.((x) => x?.name)?.name || metaArr?.[2]?.name || "Team";
-        const logos = metaArr?.find?.((x) => x?.team_logos)?.team_logos;
-        const logoUrl = logos?.[0]?.team_logo?.url || null;
-
-        if (teamKey) {
-          teamsByKey[teamKey] = { team_key: teamKey, name: teamName, logo_url: logoUrl };
-        }
-
-        // players live under rosterBlock["0"].players ...
-        if (rosterBlock) {
-          for (const [rk, rv] of Object.entries(rosterBlock)) {
-            if (rk === "coverage_type" || rk === "week" || rk === "is_prescoring" || rk === "is_editable") continue;
-            const playersObj = rv?.players;
-            if (!playersObj) continue;
-
-            for (const [pk, pv] of Object.entries(playersObj)) {
-              if (pk === "count") continue;
-              const playerArr = pv?.player;
-              if (!Array.isArray(playerArr)) continue;
-
-              const pMeta = playerArr[0] || [];
-              const pKey = pMeta?.find?.((x) => x?.player_key)?.player_key || pMeta?.[0]?.player_key;
-              const pNameObj = pMeta?.find?.((x) => x?.name)?.name;
-              const pName = pNameObj?.full || null;
-
-              const displayPos = pMeta?.find?.((x) => x?.display_position)?.display_position || null;
-              const teamAbbr = pMeta?.find?.((x) => x?.editorial_team_abbr)?.editorial_team_abbr || null;
-
-              if (pKey && pName) {
-                playerByKey.set(pKey, {
-                  player_key: pKey,
-                  player_name: pName,
-                  player_pos: displayPos || "",
-                  player_team: teamAbbr || "",
-                });
-              }
+            if (playerKeyObj) {
+              playerMap.set(playerKeyObj, {
+                player_name: nameObj?.full || "",
+                player_pos: displayPos || "",
+                player_team: teamAbbr || "",
+              });
             }
           }
         }
       }
+
+      return playerMap;
     }
 
-    // -------- Convert to rounds array shape your draft.js expects --------
+    // 3) Parse
+    const picks = extractDraftResults(draftJson);
+    const rosterPlayerMap = extractPlayersFromRosters(rosterJson);
+
+    // 4) Attach whatever we already know from rosters
+    const enriched = picks.map((p) => {
+      const info = rosterPlayerMap.get(p.player_key);
+      return {
+        ...p,
+        player_name: info?.player_name || "",
+        player_pos: info?.player_pos || "",
+        player_team: info?.player_team || "",
+      };
+    });
+
+    // 5) Find unresolved player keys and bulk fetch from /players
+    const missingKeys = enriched
+      .filter((p) => !p.player_name || p.player_name === p.player_key)
+      .map((p) => p.player_key);
+
+    // de-dupe
+    const uniqMissing = [...new Set(missingKeys)];
+
+    async function fetchPlayersBulk(playerKeys) {
+      if (!playerKeys.length) return new Map();
+
+      // Yahoo URLs can get long — chunk to be safe
+      const CHUNK = 25;
+      const out = new Map();
+
+      for (let i = 0; i < playerKeys.length; i += CHUNK) {
+        const chunk = playerKeys.slice(i, i + CHUNK);
+        const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/players;player_keys=${encodeURIComponent(
+          chunk.join(",")
+        )}?format=json`;
+
+        const r = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const txt = await r.text();
+        if (!r.ok) continue;
+
+        const j = JSON.parse(txt);
+
+        // players live at fantasy_content.league[1].players
+        const league = safeArr(j?.fantasy_content?.league);
+        const playersBlock = league[1]?.players;
+        if (!playersBlock || !isObj(playersBlock)) continue;
+
+        for (const pk of Object.keys(playersBlock)) {
+          if (pk === "count") continue;
+          const playerNode = playersBlock[pk]?.player;
+          if (!playerNode) continue;
+
+          const meta = playerNode[0];
+          const pKey = meta?.find((x) => x && x.player_key)?.player_key;
+          const name = meta?.find((x) => x && x.name)?.name?.full || "";
+          const pos = meta?.find((x) => x && x.display_position)?.display_position || "";
+          const team = meta?.find((x) => x && x.editorial_team_abbr)?.editorial_team_abbr || "";
+
+          if (pKey) out.set(pKey, { player_name: name, player_pos: pos, player_team: team });
+        }
+      }
+
+      return out;
+    }
+
+    const fallbackPlayerMap = await fetchPlayersBulk(uniqMissing);
+
+    // 6) Apply fallback
+    for (const p of enriched) {
+      if (!p.player_name || p.player_name === p.player_key) {
+        const info = fallbackPlayerMap.get(p.player_key);
+        if (info?.player_name) {
+          p.player_name = info.player_name;
+          p.player_pos = info.player_pos || p.player_pos;
+          p.player_team = info.player_team || p.player_team;
+        }
+      }
+
+      // absolute last-resort fallback display
+      if (!p.player_name) p.player_name = p.player_key;
+    }
+
+    // 7) Draft order = round 1 team keys in pick order
+    const round1 = enriched.filter((p) => p.round === 1).sort((a, b) => a.pick - b.pick);
+    const draftOrder = round1.map((p) => p.team_key);
+
+    // max round
+    const maxRound = Math.max(...enriched.map((p) => p.round), 1);
+
+    // group by rounds
     const rounds = [];
     for (let r = 1; r <= maxRound; r++) {
-      const picks = draftPicks
-        .filter((p) => p.round === r)
-        .map((p) => {
-          const info = playerByKey.get(p.player_key);
-          return {
-            pick: p.pick,
-            round: p.round,
-            team_key: p.team_key,
-            player_key: p.player_key,
-            player_name: info?.player_name || p.player_key, // fallback
-            player_pos: info?.player_pos || "",
-            player_team: info?.player_team || "",
-          };
-        });
-
-      rounds.push({ round: r, picks });
+      rounds.push({
+        round: r,
+        picks: enriched.filter((p) => p.round === r).sort((a, b) => a.pick - b.pick),
+      });
     }
 
     res.json({
-      meta: { totalPicks, maxRound, week: week || null },
+      meta: {
+        totalPicks: enriched.length,
+        maxRound,
+      },
       draftOrder,
       rounds,
-      teamsByKey,
     });
   } catch (err) {
-    console.error("Draftboard-data error:", err);
-    res.status(500).json({ error: "Failed to build draft board data" });
+    console.error("Draftboard data error:", err);
+    res.status(500).json({ error: "Failed to build draftboard data" });
   }
 });
 
