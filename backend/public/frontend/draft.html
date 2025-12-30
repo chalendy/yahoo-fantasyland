@@ -194,7 +194,7 @@
     </style>
   </head>
 
-  <body>
+    <body>
     <div class="app-shell">
       <header class="app-header">
         <div>
@@ -204,27 +204,25 @@
 
         <div class="button-row">
           <a class="btn btn-secondary" href="/">Back to Matchups</a>
-          <button class="btn btn-primary" id="reloadBtn">Reload</button>
+          <button id="reloadBtn" class="btn btn-primary" type="button">Reload</button>
         </div>
       </header>
 
       <main class="app-main">
         <section class="controls-card">
           <h2>Draft Board</h2>
-          <p class="hint">Columns are the Round 1 draft order. Rows are rounds. Keepers are marked.</p>
-          <p class="status-message" id="status"></p>
+          <p class="hint">Columns are the Round 1 draft order. Rows are rounds.</p>
+          <p id="status" class="status-message"></p>
         </section>
 
-        <section class="draft-board-wrap">
-          <div class="draft-scroll">
-            <div id="draftBoard"></div>
-          </div>
-        </section>
+        <section id="draftBoard" class="draft-board"></section>
       </main>
 
-      <footer class="app-footer">Powered by Yahoo Fantasy API</footer>
+      <footer class="app-footer">
+        Powered by Yahoo Fantasy API
+      </footer>
     </div>
 
-    <script src="/draft.js"></script>
+    <script type="module" src="draft.js"></script>
   </body>
 </html>
