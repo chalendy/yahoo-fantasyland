@@ -57,18 +57,23 @@ app.get("/auth/callback", async (req, res) => {
   }
 
   try {
-    const tokenResponse = await doFetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method: "POST",
-      headers: {
-        Authorization: "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        redirect_uri: REDIRECT_URI,
-        code,
-      }),
-    });
+    const tokenResponse = await doFetch(
+      "https://api.login.yahoo.com/oauth2/get_token",
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          redirect_uri: REDIRECT_URI,
+          code,
+        }),
+      }
+    );
 
     const tokenData = await tokenResponse.json();
 
@@ -91,7 +96,9 @@ app.get("/auth/callback", async (req, res) => {
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+    return res
+      .status(401)
+      .json({ error: "Not authenticated. Please click Sign In first." });
   }
 
   try {
@@ -145,7 +152,7 @@ app.get("/standings-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  SETTINGS RAW (NEW)
+//  SETTINGS RAW
 // -----------------------------
 app.get("/settings-raw", async (req, res) => {
   if (!accessToken) {
@@ -170,9 +177,10 @@ app.get("/settings-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  DRAFT RESULTS RAW
+//  DRAFT RESULTS RAW (NEW)
+//  GET /draftresults-raw
 // -----------------------------
-app.get("/draft-results-raw", async (req, res) => {
+app.get("/draftresults-raw", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated." });
   }
@@ -185,20 +193,18 @@ app.get("/draft-results-raw", async (req, res) => {
     });
 
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) {
-      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
-    }
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
 
     res.type("application/json").send(bodyText);
   } catch (err) {
-    console.error("Draft results fetch error:", err);
+    console.error("Draftresults fetch error:", err);
     res.status(500).json({ error: "Failed to fetch draft results" });
   }
 });
 
-
 // -----------------------------
-//  TEAM ROSTERS RAW
+//  ROSTERS RAW (NEW)
+//  GET /rosters-raw?week=17   (week optional; defaults to Yahoo default)
 // -----------------------------
 app.get("/rosters-raw", async (req, res) => {
   if (!accessToken) {
@@ -206,24 +212,28 @@ app.get("/rosters-raw", async (req, res) => {
   }
 
   try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+    const week = req.query.week ? String(req.query.week) : null;
+
+    const url =
+      week && week.trim()
+        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
+            week
+          )}?format=json`
+        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
 
     const apiRes = await doFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) {
-      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
-    }
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
 
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Rosters fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch team rosters" });
+    res.status(500).json({ error: "Failed to fetch rosters" });
   }
 });
-
 
 // -----------------------------
 //  FRONTEND STATIC FILES
