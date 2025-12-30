@@ -605,3 +605,116 @@ body {
     font-size: 1.2rem;
   }
 }
+
+/* Draft Board */
+
+.draft-board-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 14px 16px 16px;
+}
+
+.draft-board {
+  overflow: auto;
+  max-height: 75vh;
+  border-radius: var(--radius-md);
+}
+
+.draft-grid-header {
+  display: grid;
+  grid-template-columns: 70px repeat(var(--cols), minmax(160px, 1fr));
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+  padding: 8px 0;
+}
+
+.draft-corner {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.draft-team-header {
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.draft-team-key {
+  color: var(--accent-strong);
+}
+
+.draft-grid .draft-row {
+  display: grid;
+  grid-template-columns: 70px repeat(var(--cols), minmax(160px, 1fr));
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.draft-round-cell {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.draft-pick-cell {
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 55%),
+              var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.draft-pick-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.draft-pick-num {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.draft-pick-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.95;
+}
+
+.draft-player-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.draft-pick-empty {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
