@@ -115,7 +115,13 @@ async function loadDraftBoard() {
         top.appendChild(el("div", "draft-pick-meta", metaText || "Pick"));
 
         cell.appendChild(top);
-        cell.appendChild(el("div", "draft-player-name", pick.player_name || "Unknown Player"));
+        const displayName =
+  pick.player_name && pick.player_name !== pick.player_key
+    ? pick.player_name
+    : pick.player_key.replace(/^.*\.p\./, "Player ");
+
+cell.appendChild(el("div", "draft-player-name", displayName));
+
       }
 
       grid.appendChild(cell);
