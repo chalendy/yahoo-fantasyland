@@ -1,11 +1,148 @@
-/* =========================
-   Draft Board Layout
-========================= */
+/* =========================================================
+   Draft Board Theme + Grid (FULL FILE)
+   - Keeps the dark/purple/orange theme
+   - Keeps the working grid layout
+   - Makes the Rnd column thinner
+   - Keeper badge sits BESIDE the pick number
+========================================================= */
 
+/* ---------- Theme tokens ---------- */
+:root {
+  --bg: #060714;
+  --bg-elevated: #101322;
+  --bg-elevated-soft: #15182a;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --accent: #7f5af0;
+  --accent-soft: rgba(127, 90, 240, 0.15);
+  --accent-strong: #ff8e3c;
+  --text: #f5f5f7;
+  --text-muted: #a1a5c1;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+
+  /* grid sizing */
+  --rnd-col: 30px;           /* <<< thinner Round column */
+  --cell-min: 130px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
+  color: var(--text);
+}
+
+/* ---------- Page shell (no max-width container) ---------- */
+.draft-shell {
+  width: 100%;
+  min-height: 100vh;
+  padding: 22px 16px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.draft-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.draft-title h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.draft-title .subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.draft-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn {
+  border-radius: 999px;
+  border: none;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #c34eff);
+  color: white;
+  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.45);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.65);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background: #1e2236;
+}
+
+.draft-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--accent-strong);
+}
+
+/* ---------- Board container ---------- */
+.draft-board-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 14px 14px 12px;
+}
+
+/* Horizontal scroll stays enabled */
 .draft-board-wrapper {
   width: 100%;
   overflow-x: auto;
   padding-bottom: 8px;
+}
+
+/* Make the scrollbar a bit nicer (optional) */
+.draft-board-wrapper::-webkit-scrollbar {
+  height: 10px;
+}
+.draft-board-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+.draft-board-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
 }
 
 /* Grid container */
@@ -16,17 +153,16 @@
   min-width: 100%;
 }
 
-/* =========================
-   Header Row
-========================= */
-
+/* ---------- Header Row ---------- */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr)); /* was 44px */
+  grid-template-columns: var(--rnd-col) repeat(var(--cols), minmax(var(--cell-min), 1fr));
   gap: 6px;
   position: sticky;
   top: 0;
   z-index: 5;
+
+  /* Sticky header background */
   background: var(--bg);
   padding-bottom: 4px;
 }
@@ -37,18 +173,19 @@
   color: var(--text-muted);
   text-align: center;
   align-self: end;
+  padding-bottom: 4px;
 }
 
-/* Team header */
+/* Team header cell */
 .draft-team-header {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 6px 8px;
+  padding: 8px 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   text-align: center;
 }
 
@@ -57,21 +194,25 @@
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.18);
 }
 
 .draft-team-name {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 650;
   line-height: 1.1;
 }
 
-/* =========================
-   Draft Rows
-========================= */
+.draft-team-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.05;
+}
 
+/* ---------- Draft Rows ---------- */
 .draft-row {
   display: grid;
-  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr)); /* was 44px */
+  grid-template-columns: var(--rnd-col) repeat(var(--cols), minmax(var(--cell-min), 1fr));
   gap: 6px;
 }
 
@@ -80,118 +221,111 @@
   font-size: 0.7rem;
   color: var(--accent-strong);
   text-align: center;
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
-/* =========================
-   Pick Cells
-========================= */
-
+/* ---------- Pick Cells ---------- */
 .draft-pick-cell {
-  position: relative; /* needed for keeper badge fallback positioning */
-  background: var(--bg-elevated-soft);
+  background:
+    radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 45%),
+    radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 55%),
+    var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 8px;
+  padding: 7px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 54px;
+  min-height: 56px;
 }
 
 .draft-pick-empty {
   color: var(--text-muted);
   text-align: center;
   font-size: 0.75rem;
+  padding-top: 8px;
 }
 
-/* Pick meta row */
+/* --- Top meta row --- */
 .draft-pick-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
-/* Make the left side able to hold "#69" + Keeper badge side-by-side
-   (works if your JS put the badge inside .draft-pick-top) */
-.draft-pick-top .draft-pick-num {
+/* Left cluster: pick number + keeper badge (SIDE BY SIDE) */
+.draft-pick-left {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* <<< badge sits beside #69 */
+  min-width: 0;
 }
 
-/* Keeper badge styling (badge look) */
-.draft-keeper,
-.draft-keeper-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 142, 60, 0.35);
-  background: rgba(255, 142, 60, 0.12);
-  color: var(--accent-strong);
-  font-size: 0.62rem;
-  line-height: 1;
+.draft-pick-num {
+  font-weight: 700;
+  color: #d7d9ff;
+}
+
+/* Right meta (pos/team) */
+.draft-pick-meta {
   white-space: nowrap;
-}
-
-/* Fallback: if badge is NOT inside .draft-pick-top (and renders between rows),
-   force it up beside the pick number visually */
-.draft-pick-cell > .draft-keeper,
-.draft-pick-cell > .draft-keeper-badge {
-  position: absolute;
-  top: 6px;
-  left: 42px; /* sits just to the right of "#69" for most cases */
-  margin: 0;
-}
-
-/* If it IS inside the top row, keep it normal (override fallback) */
-.draft-pick-top .draft-keeper,
-.draft-pick-top .draft-keeper-badge {
-  position: static;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   line-height: 1.15;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* =========================
-   Responsive Tweaks
-========================= */
+/* Keeper badge */
+.draft-keeper-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
 
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.14);
+  border: 1px solid rgba(255, 142, 60, 0.35);
+}
+
+/* ---------- Responsive tweaks ---------- */
 @media (max-width: 900px) {
-  .draft-grid-header,
-  .draft-row {
-    grid-template-columns: 28px repeat(var(--cols), minmax(120px, 1fr));
+  :root {
+    --rnd-col: 28px;
+    --cell-min: 120px;
   }
 
-  .draft-pick-cell > .draft-keeper,
-  .draft-pick-cell > .draft-keeper-badge {
-    left: 38px;
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: var(--rnd-col) repeat(var(--cols), minmax(var(--cell-min), 1fr));
   }
 }
 
 @media (max-width: 600px) {
-  .draft-grid-header,
-  .draft-row {
-    grid-template-columns: 26px repeat(var(--cols), minmax(110px, 1fr));
+  :root {
+    --rnd-col: 26px;
+    --cell-min: 110px;
   }
 
   .draft-team-name {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
 
   .draft-player-name {
-    font-size: 0.75rem;
-  }
-
-  .draft-pick-cell > .draft-keeper,
-  .draft-pick-cell > .draft-keeper-badge {
-    left: 36px;
+    font-size: 0.76rem;
   }
 }
