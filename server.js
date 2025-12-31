@@ -222,8 +222,135 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  Draft Board data (draft results + team meta + player headshots)
+//  SCOREBOARD (supports ?week=)
 // -----------------------------
+app.get("/scoreboard", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const week = req.query.week ? String(req.query.week) : null;
+    const url =
+      week && week.trim()
+        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard;week=${encodeURIComponent(
+            week
+          )}?format=json`
+        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Scoreboard error:", err);
+    res.status(500).json({ error: "Failed to fetch scoreboard" });
+  }
+});
+
+// -----------------------------
+//  STANDINGS RAW
+// -----------------------------
+app.get("/standings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Standings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league standings" });
+  }
+});
+
+// -----------------------------
+//  SETTINGS RAW
+// -----------------------------
+app.get("/settings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Settings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league settings" });
+  }
+});
+
+// -----------------------------
+//  DRAFT RESULTS RAW
+// -----------------------------
+app.get("/draftresults-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Draftresults fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch draft results" });
+  }
+});
+
+// -----------------------------
+//  ROSTERS RAW (supports ?week=)  <-- we will use week=1 for keeper truth
+// -----------------------------
+app.get("/rosters-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const week = req.query.week ? String(req.query.week) : "1";
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
+      week
+    )}?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Rosters fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch rosters" });
+  }
+});
+
+// -----------------------------
+//  DRAFTBOARD DATA (merged + enriched)
+//  - includes team names/logos
+//  - includes player names/pos/team from roster where possible
+//  - keeper flag from roster week=1 (fallback if unmapped)
+/ -----------------------------
 app.get("/draftboard-data", async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
