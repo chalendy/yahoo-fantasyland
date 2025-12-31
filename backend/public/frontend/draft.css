@@ -1,364 +1,152 @@
 /* =========================
-   THEME (keep as-is)
+   Draft Board Layout
 ========================= */
 
-:root {
-  --bg: #060714;
-  --bg-elevated: #101322;
-  --bg-elevated-soft: #15182a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --accent: #7f5af0;
-  --accent-soft: rgba(127, 90, 240, 0.15);
-  --accent-strong: #ff8e3c;
-  --text: #f5f5f7;
-  --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
-  --radius-lg: 16px;
-  --radius-md: 10px;
-
-  /* Layout tuning */
-  --round-col: 56px;         /* width of the "Rnd" column */
-  --cell-min: 190px;         /* minimum width per team column */
-  --cell-max: 1fr;           /* how they expand */
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
-  color: var(--text);
-}
-
-/* =========================
-   PAGE SHELL
-========================= */
-
-.app-shell {
-  min-height: 100vh;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.app-main {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.app-footer {
-  margin-top: auto;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* Buttons (if you have them on this page) */
-.btn {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-  white-space: nowrap;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), #c34eff);
-  color: white;
-  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
-}
-
-.btn-secondary {
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background: #1e2236;
-}
-
-/* Status line */
-#status {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--accent-strong);
-}
-
-/* =========================
-   DRAFT BOARD WRAPPER
-   (Horizontal scroll is BACK)
-========================= */
-
-#draftBoard {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  padding: 12px;
-}
-
-/* This is what restores the "board" behavior.
-   If you removed overflow before, it will collapse into one column. */
-.draft-board-scroll {
+.draft-board-wrapper {
   width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px; /* space for scrollbar without covering content */
+  padding-bottom: 8px;
 }
 
-/* Optional: nicer scrollbar (WebKit) */
-.draft-board-scroll::-webkit-scrollbar {
-  height: 10px;
-}
-.draft-board-scroll::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 999px;
-}
-.draft-board-scroll::-webkit-scrollbar-thumb {
-  background: rgba(127, 90, 240, 0.35);
-  border-radius: 999px;
-}
-.draft-board-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 90, 240, 0.5);
+/* Grid container */
+.draft-grid {
+  display: grid;
+  grid-auto-rows: auto;
+  gap: 6px;
+  min-width: 100%;
 }
 
 /* =========================
-   GRID LAYOUT
+   Header Row
 ========================= */
 
-/* The inner grid should be wider than the screen when needed.
-   This prevents the “everything became one column” issue. */
-.draft-grid {
-  min-width: calc(var(--round-col) + (12 * var(--cell-min)));
-}
-
-/* Header row grid */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), var(--cell-max)));
-  gap: 10px;
-  align-items: stretch;
+  grid-template-columns: 44px repeat(var(--cols), minmax(130px, 1fr));
+  gap: 6px;
   position: sticky;
   top: 0;
-  z-index: 2;
-  padding-bottom: 8px;
-  background: linear-gradient(180deg, rgba(16, 19, 34, 0.95), rgba(16, 19, 34, 0.65));
-  backdrop-filter: blur(6px);
+  z-index: 5;
+  background: var(--bg);
+  padding-bottom: 4px;
 }
 
-/* "Rnd" corner cell */
+/* Round corner */
 .draft-corner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
-  height: 56px;
+  text-align: center;
+  align-self: end;
 }
 
-/* Team header cell */
+/* Team header */
 .draft-team-header {
-  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.20), transparent 55%),
-              var(--bg-elevated-soft);
-  padding: 8px 10px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: var(--cell-min);
-}
-
-.draft-team-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.2);
-  flex: 0 0 auto;
-}
-
-.draft-team-text {
+  border-radius: var(--radius-md);
+  padding: 6px 6px 8px;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.draft-team-header img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .draft-team-name {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.draft-team-sub {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* =========================
+   Draft Rows
+========================= */
 
-/* Each round row grid */
 .draft-row {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), var(--cell-max)));
-  gap: 10px;
-  align-items: stretch;
-  margin-bottom: 10px;
-}
-
-/* Round label cell */
-.draft-round-cell {
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.8rem;
-  color: var(--accent-strong);
-  min-height: 74px;
-}
-
-/* Pick cell */
-.draft-pick-cell {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 55%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 60%),
-              var(--bg-elevated-soft);
-  padding: 10px 10px 9px;
-  min-height: 74px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  grid-template-columns: 44px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
 }
 
-.draft-pick-empty {
-  color: rgba(255,255,255,0.35);
-  font-size: 0.9rem;
+/* Round label */
+.draft-round-cell {
+  font-size: 0.7rem;
+  color: var(--accent-strong);
+  text-align: center;
+  padding-top: 8px;
 }
 
-/* Top meta line */
+/* =========================
+   Pick Cells
+========================= */
+
+.draft-pick-cell {
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 54px;
+}
+
+.draft-pick-empty {
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+/* Pick meta row */
 .draft-pick-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-}
-
-.draft-pick-num {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.65rem;
   color: var(--text-muted);
-}
-
-.draft-pick-meta {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: 0.9rem;
-  font-weight: 750;
+  font-size: 0.8rem;
+  font-weight: 600;
   line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* Keeper badge */
-.draft-keeper-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.7rem;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 142, 60, 0.35);
-  background: rgba(255, 142, 60, 0.12);
+/* Keeper flag */
+.draft-keeper {
+  font-size: 0.65rem;
   color: var(--accent-strong);
-  width: fit-content;
 }
 
 /* =========================
-   RESPONSIVE
+   Responsive Tweaks
 ========================= */
 
 @media (max-width: 900px) {
-  :root {
-    --cell-min: 170px;
-    --round-col: 52px;
-  }
-
-  .draft-team-header {
-    height: 54px;
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 36px repeat(var(--cols), minmax(120px, 1fr));
   }
 }
 
 @media (max-width: 600px) {
-  :root {
-    --cell-min: 160px;
-    --round-col: 48px;
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 32px repeat(var(--cols), minmax(110px, 1fr));
   }
 
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .draft-team-name {
+    font-size: 0.65rem;
+  }
+
+  .draft-player-name {
+    font-size: 0.75rem;
   }
 }
