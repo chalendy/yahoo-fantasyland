@@ -5,7 +5,7 @@ const reloadBtn = document.getElementById("reloadBtn");
 reloadBtn?.addEventListener("click", () => loadDraftBoard());
 
 function setStatus(msg) {
-  if (statusEl) statusEl.textContent = msg || "";
+  statusEl.textContent = msg || "";
 }
 
 function el(tag, className, text) {
@@ -15,25 +15,8 @@ function el(tag, className, text) {
   return n;
 }
 
-// Try multiple possible shapes for team metadata coming from /draftboard-data
-function getTeamMeta(data, teamKey) {
-  const sources = [
-    data?.teamsByKey,
-    data?.teams,
-    data?.teamMeta,
-    data?.teamMap,
-  ];
-
-  for (const src of sources) {
-    if (src && typeof src === "object") {
-      const v = src[teamKey];
-      if (v) return v;
-    }
-  }
-  return null;
-}
-
-function teamShort(teamKey) {
+function teamShortFromKey(teamKey) {
+  // "461.l.38076.t.7" -> "T7"
   const m = String(teamKey).match(/\.t\.(\d+)$/);
   return m ? `T${m[1]}` : teamKey;
 }
@@ -44,10 +27,8 @@ async function loadDraftBoard() {
 
   let data;
   try {
-    const res = await fetch("/draftboard-data", { cache: "no-store" });
+    const res = await fetch("/draftboard-data");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    // If you ever accidentally get HTML (login page), this will throw:
     data = await res.json();
   } catch (e) {
     console.error(e);
@@ -55,7 +36,8 @@ async function loadDraftBoard() {
     return;
   }
 
-  const { draftOrder, rounds, meta } = data || {};
+  const { draftOrder, rounds, meta, teamsByKey } = data;
+
   if (!Array.isArray(draftOrder) || !draftOrder.length || !Array.isArray(rounds) || !rounds.length) {
     setStatus("Draft data looks empty.");
     return;
@@ -65,45 +47,55 @@ async function loadDraftBoard() {
   const byRoundTeam = new Map();
   for (const r of rounds) {
     const m = new Map();
-    for (const p of (r?.picks || [])) m.set(p.team_key, p);
+    for (const p of (r.picks || [])) m.set(p.team_key, p);
     byRoundTeam.set(r.round, m);
   }
 
-  // Important: CSS uses --cols for repeat(var(--cols), ...)
-  // Set it on the container that wraps header + rows.
-  boardEl.style.setProperty("--cols", String(draftOrder.length));
+  // Wrapper (keeps your horizontal scroll behavior)
+  const wrapper = el("div", "draft-board-wrapper");
+
+  // Grid wrapper
+  const grid = el("div", "draft-grid");
+  grid.style.setProperty("--cols", String(draftOrder.length));
 
   // Header row
   const header = el("div", "draft-grid-header");
+
+  // Top-left corner cell
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
+  // Team columns
   for (const teamKey of draftOrder) {
-    const metaObj = getTeamMeta(data, teamKey);
-    const name = metaObj?.name || metaObj?.team_name || metaObj?.teamName || teamShort(teamKey);
-    const logo = metaObj?.logo || metaObj?.logo_url || metaObj?.logoUrl || metaObj?.team_logo || null;
+    const info = teamsByKey?.[teamKey] || null;
 
     const th = el("div", "draft-team-header");
 
-    if (logo) {
+    // logo
+    const logoUrl = info?.logo || info?.logo_url || info?.team_logo || info?.teamLogo;
+    if (logoUrl) {
       const img = document.createElement("img");
-      img.src = logo;
-      img.alt = name;
-      img.loading = "lazy";
+      img.src = logoUrl;
+      img.alt = info?.name ? `${info.name} logo` : "Team logo";
       th.appendChild(img);
     }
 
+    // name (fallback to T#)
+    const name = info?.name || info?.team_name || info?.teamName || teamShortFromKey(teamKey);
     th.appendChild(el("div", "draft-team-name", name));
-    boardEl.appendChild(header);
+
     header.appendChild(th);
   }
 
-  // Grid body
-  const grid = el("div", "draft-grid");
+  grid.appendChild(header);
 
-  const maxRound = Number(meta?.maxRound) || Math.max(...rounds.map(r => Number(r.round || 0)));
+  // Body: rounds
+  const maxRound = Number(meta?.maxRound || 0) || Math.max(...rounds.map(r => r.round || 0), 0);
 
   for (let r = 1; r <= maxRound; r++) {
     const row = el("div", "draft-row");
+    row.style.setProperty("--cols", String(draftOrder.length));
+
+    // Round label
     row.appendChild(el("div", "draft-round-cell", `R${r}`));
 
     const map = byRoundTeam.get(r) || new Map();
@@ -115,28 +107,30 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
-        // Top line: pick # + (Keeper badge) on left, position/team on right
+        // --- TOP ROW ---
         const top = el("div", "draft-pick-top");
 
+        // Left group: pick number + keeper badge (SIDE-BY-SIDE)
         const left = el("div", "draft-pick-left");
         left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
         if (pick.is_keeper) {
-          // Use a badge class (your CSS should style this as a pill/badge)
+          // Badge element (style via CSS)
           left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
         }
 
-        const right = el(
-          "div",
-          "draft-pick-meta",
-          `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim()
-        );
+        // Right meta: position/team
+        const metaText =
+          `${pick.player_pos || ""}${pick.player_team ? ` · ${pick.player_team}` : ""}`.trim();
+        const metaEl = el("div", "draft-pick-meta", metaText);
 
         top.appendChild(left);
-        top.appendChild(right);
+        top.appendChild(metaEl);
 
         cell.appendChild(top);
-        cell.appendChild(el("div", "draft-player-name", pick.player_name || "—"));
+
+        // Player name under the top row
+        cell.appendChild(el("div", "draft-player-name", pick.player_name || pick.player_key));
       }
 
       row.appendChild(cell);
@@ -145,10 +139,10 @@ async function loadDraftBoard() {
     grid.appendChild(row);
   }
 
-  boardEl.appendChild(grid);
+  wrapper.appendChild(grid);
+  boardEl.appendChild(wrapper);
 
-  const total = Number(meta?.totalPicks) || 0;
-  setStatus(`Loaded ${total || "?"} picks · ${maxRound} rounds`);
+  setStatus(`Loaded ${meta?.totalPicks ?? "?"} picks · ${maxRound} rounds`);
 }
 
 loadDraftBoard();
