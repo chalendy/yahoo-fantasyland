@@ -1,180 +1,28 @@
-/* =========================================================
-   Draft Page Theme + Base
-========================================================= */
-
-:root {
-  --bg: #060714;
-  --bg-elevated: #101322;
-  --bg-elevated-soft: #15182a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --accent: #7f5af0;
-  --accent-soft: rgba(127, 90, 240, 0.15);
-  --accent-strong: #ff8e3c;
-  --text: #f5f5f7;
-  --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
-  --radius-lg: 16px;
-  --radius-md: 10px;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
-  color: var(--text);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.app-shell {
-  min-height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.controls-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px 14px;
-  border: 1px solid var(--border-subtle);
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.btn {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-  white-space: nowrap;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), #c34eff);
-  color: white;
-  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
-}
-
-.btn-secondary {
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background: #1e2236;
-}
-
-.status-message {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--accent-strong);
-}
-
-.app-footer {
-  margin-top: auto;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* =========================================================
+/* =========================
    Draft Board Layout
-========================================================= */
-
-/* IMPORTANT: default cols so repeat(var(--cols)) never collapses */
-#draftBoard {
-  --cols: 12; /* JS should overwrite this, but this prevents "1 column" failures */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+========================= */
 
 .draft-board-wrapper {
   width: 100%;
-  overflow-x: auto; /* bring back scrollbar */
-  padding-bottom: 10px;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
-/* Optional: prettier scrollbar (safe) */
-.draft-board-wrapper::-webkit-scrollbar {
-  height: 10px;
-}
-.draft-board-wrapper::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 999px;
-}
-.draft-board-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(127, 90, 240, 0.35);
-  border-radius: 999px;
-}
-.draft-board-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 90, 240, 0.5);
+/* Grid container */
+.draft-grid {
+  display: grid;
+  grid-auto-rows: auto;
+  gap: 6px;
+  min-width: 100%;
 }
 
-/* =========================================================
-   Grid + Header
-========================================================= */
-
-/* Round column thinner */
-:root {
-  --round-col: 15px; /* thinner than before */
-  --cell-min: 120px; /* keeps it readable; tweak if you want */
-}
+/* =========================
+   Header Row
+========================= */
 
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 22px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr)); /* was 44px */
   gap: 6px;
   position: sticky;
   top: 0;
@@ -183,6 +31,7 @@ a {
   padding-bottom: 4px;
 }
 
+/* Round corner */
 .draft-corner {
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -190,12 +39,12 @@ a {
   align-self: end;
 }
 
-/* Team header cell */
+/* Team header */
 .draft-team-header {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 4px 2px 2px;
+  padding: 6px 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -208,8 +57,6 @@ a {
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.35);
 }
 
 .draft-team-name {
@@ -218,27 +65,17 @@ a {
   line-height: 1.1;
 }
 
-.draft-team-sub {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  line-height: 1.1;
-}
-
-/* =========================================================
-   Rows
-========================================================= */
-
-.draft-grid {
-  display: grid;
-  gap: 1px;
-}
+/* =========================
+   Draft Rows
+========================= */
 
 .draft-row {
   display: grid;
-  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr)); /* was 44px */
   gap: 6px;
 }
 
+/* Round label */
 .draft-round-cell {
   font-size: 0.7rem;
   color: var(--accent-strong);
@@ -246,11 +83,12 @@ a {
   padding-top: 8px;
 }
 
-/* =========================================================
+/* =========================
    Pick Cells
-========================================================= */
+========================= */
 
 .draft-pick-cell {
+  position: relative; /* needed for keeper badge fallback positioning */
   background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -267,44 +105,81 @@ a {
   font-size: 0.75rem;
 }
 
+/* Pick meta row */
 .draft-pick-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
+/* Make the left side able to hold "#69" + Keeper badge side-by-side
+   (works if your JS put the badge inside .draft-pick-top) */
+.draft-pick-top .draft-pick-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Keeper badge styling (badge look) */
+.draft-keeper,
+.draft-keeper-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 142, 60, 0.35);
+  background: rgba(255, 142, 60, 0.12);
+  color: var(--accent-strong);
+  font-size: 0.62rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Fallback: if badge is NOT inside .draft-pick-top (and renders between rows),
+   force it up beside the pick number visually */
+.draft-pick-cell > .draft-keeper,
+.draft-pick-cell > .draft-keeper-badge {
+  position: absolute;
+  top: 6px;
+  left: 42px; /* sits just to the right of "#69" for most cases */
+  margin: 0;
+}
+
+/* If it IS inside the top row, keep it normal (override fallback) */
+.draft-pick-top .draft-keeper,
+.draft-pick-top .draft-keeper-badge {
+  position: static;
+}
+
+/* Player name */
 .draft-player-name {
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.15;
 }
 
-.draft-keeper {
-  font-size: 0.65rem;
-  color: var(--accent-strong);
-}
-
-/* =========================================================
+/* =========================
    Responsive Tweaks
-========================================================= */
+========================= */
 
 @media (max-width: 900px) {
-  :root {
-    --round-col: 30px;
-    --cell-min: 112px;
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 28px repeat(var(--cols), minmax(120px, 1fr));
   }
 
-  .draft-team-name {
-    font-size: 0.68rem;
+  .draft-pick-cell > .draft-keeper,
+  .draft-pick-cell > .draft-keeper-badge {
+    left: 38px;
   }
 }
 
 @media (max-width: 600px) {
-  :root {
-    --round-col: 28px;
-    --cell-min: 108px;
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 26px repeat(var(--cols), minmax(110px, 1fr));
   }
 
   .draft-team-name {
@@ -314,56 +189,9 @@ a {
   .draft-player-name {
     font-size: 0.75rem;
   }
+
+  .draft-pick-cell > .draft-keeper,
+  .draft-pick-cell > .draft-keeper-badge {
+    left: 36px;
+  }
 }
-
-/* === Fix: board starts at left + uses full available width === */
-
-/* Make sure the wrapper isn't being centered by any parent styles */
-.draft-board-wrapper {
-  width: 100%;
-  overflow-x: auto;           /* keep scrollbar */
-  padding-bottom: 8px;
-  margin: 0;                  /* kill centering */
-  display: block;
-}
-
-/* Force the grid to align to the left edge inside the scroll area */
-.draft-grid {
-  min-width: max-content;     /* grid can be wider than screen if needed */
-  width: max-content;         /* prevents weird centering/stretching */
-  justify-content: start;
-  margin: 0;                  /* kill centering */
-}
-
-/* If you have a container that adds left padding, neutralize it on this page */
-body.draft-page .app-shell,
-body.draft-page .app-main,
-body.draft-page .layout,
-body.draft-page main {
-  padding-left: 0 !important;
-}
-
-/* Optional: give a small left gutter so it's not glued to the edge */
-body.draft-page .draft-board-wrapper {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-/* Keeper badge */
-.draft-keeper-badge {
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(255, 142, 60, 0.15);
-  color: var(--accent-strong);
-  border: 1px solid rgba(255, 142, 60, 0.35);
-  white-space: nowrap;
-}
-
-.draft-pick-num-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
