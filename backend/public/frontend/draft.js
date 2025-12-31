@@ -105,6 +105,7 @@ function ensureToggleUI() {
     "",
     "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)"
   );
+
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -186,7 +187,7 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header row
+  // Header
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -225,6 +226,7 @@ function renderBoard(data) {
 
   // Body
   const grid = el("div", "draft-grid");
+
   const maxRound =
     Number(meta?.maxRound) ||
     Math.max(...rounds.map((r) => Number(r.round || 0)));
@@ -257,6 +259,7 @@ function renderBoard(data) {
         const playerKey = String(pick.player_key || "");
         const neverMoved = !movedSet.has(playerKey);
 
+        // IMPORTANT: keepers are NOT eligible to be kept again
         isEligible =
           roundNum >= 6 &&
           !!roster?.has(playerKey) &&
@@ -279,22 +282,18 @@ function renderBoard(data) {
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // --- BADGES RAIL (space reserved; no shifting) ---
-      const badges = el("div", "draft-badges");
-
-      // Keeper badge: always create, hide via CSS class if not keeper
+      // Reserve badge slots so NOTHING shifts.
+      // Use visibility (not display) to keep layout stable.
       const keeperBadge = el("span", "draft-keeper-badge", "Keeper");
-      if (!pick.is_keeper) keeperBadge.classList.add("is-hidden");
-      badges.appendChild(keeperBadge);
+      keeperBadge.style.visibility = pick.is_keeper ? "visible" : "hidden";
 
-      // Eligible badge: always create, only show when toggle ON + eligible
-      const eligibleBadge = el("span", "draft-keeper-badge draft-eligible-badge", "Eligible");
-      if (!(keeperToggleState.enabled && canComputeEligibility && isEligible)) {
-        eligibleBadge.classList.add("is-hidden");
-      }
-      badges.appendChild(eligibleBadge);
+      const eligibleBadge = el("span", "draft-keeper-badge", "Eligible");
+      const showEligible =
+        keeperToggleState.enabled && canComputeEligibility && isEligible && !pick.is_keeper;
+      eligibleBadge.style.visibility = showEligible ? "visible" : "hidden";
 
-      left.appendChild(badges);
+      left.appendChild(keeperBadge);
+      left.appendChild(eligibleBadge);
 
       const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
       const right = el("div", "draft-pick-meta", metaText);
