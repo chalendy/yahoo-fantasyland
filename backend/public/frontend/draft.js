@@ -73,7 +73,7 @@ function getMovedPlayersSet(data) {
 }
 
 // -------------------------
-// Toggle UI
+// Toggle UI (own line under header)
 // -------------------------
 let keeperToggleState = {
   enabled: false,
@@ -81,14 +81,9 @@ let keeperToggleState = {
 };
 
 function ensureToggleUI() {
-  const host =
-    document.querySelector(".button-row") ||
-    document.querySelector(".controls-card") ||
-    document.querySelector(".app-header") ||
-    document.body;
-
   if (document.getElementById("keeperEligibleToggle")) return;
 
+  // Create the label/button
   const wrap = el("label", "btn btn-secondary");
   wrap.style.display = "inline-flex";
   wrap.style.alignItems = "center";
@@ -101,7 +96,12 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el("span", "", "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)");
+  const txt = el(
+    "span",
+    "",
+    "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)"
+  );
+
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -110,11 +110,28 @@ function ensureToggleUI() {
     if (window.__draftDataCache) renderBoard(window.__draftDataCache);
   });
 
-  if (host.classList?.contains("button-row")) {
-    host.appendChild(wrap);
-  } else {
-    boardEl?.parentNode?.insertBefore(wrap, boardEl);
+  // Put it on its own line under the header (preferred)
+  const header = document.querySelector(".app-header");
+  const appShell = document.querySelector(".app-shell") || document.body;
+
+  let row = document.querySelector(".draft-toggle-row");
+  if (!row) {
+    row = el("div", "draft-toggle-row");
+    row.style.display = "flex";
+    row.style.flexWrap = "wrap";
+    row.style.gap = "10px";
+    row.style.alignItems = "center";
+
+    if (header && header.parentNode) {
+      header.insertAdjacentElement("afterend", row);
+    } else if (boardEl?.parentNode) {
+      boardEl.parentNode.insertBefore(row, boardEl);
+    } else {
+      appShell.appendChild(row);
+    }
   }
+
+  row.appendChild(wrap);
 }
 
 function setToggleReady(isReady) {
@@ -183,6 +200,7 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
+  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -219,6 +237,7 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
+  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
