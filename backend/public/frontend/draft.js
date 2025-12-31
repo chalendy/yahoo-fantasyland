@@ -32,6 +32,39 @@ function teamShort(teamKey) {
   return m ? `T${m[1]}` : teamKey;
 }
 
+function buildPortrait(pick) {
+  const url = pick?.player_headshot || pick?.headshot || pick?.headshot_url || pick?.image_url || null;
+
+  const wrap = el("div", "draft-player-row");
+  const avatar = el("div", "draft-player-avatar");
+
+  if (url) {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = pick?.player_name ? `${pick.player_name} headshot` : "Player headshot";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.onerror = () => {
+      // fallback to placeholder if image fails
+      avatar.classList.add("is-placeholder");
+      avatar.textContent = "👤";
+      img.remove();
+    };
+    avatar.appendChild(img);
+  } else {
+    avatar.classList.add("is-placeholder");
+    avatar.textContent = "👤";
+  }
+
+  const text = el("div", "draft-player-text");
+  text.appendChild(el("div", "draft-player-name", pick?.player_name || "—"));
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(text);
+  return wrap;
+}
+
 async function loadDraftBoard() {
   setStatus("Loading draft board…");
   boardEl.innerHTML = "";
@@ -61,29 +94,17 @@ async function loadDraftBoard() {
     byRoundTeam.set(r.round, m);
   }
 
-  // set CSS var once; it inherits into header/rows
+  // Set columns count for CSS repeat(var(--cols), ...)
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // -----------------------
-  // Header row (append ONCE)
-  // -----------------------
+  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
     const metaObj = getTeamMeta(data, teamKey);
-    const name =
-      metaObj?.name ||
-      metaObj?.team_name ||
-      metaObj?.teamName ||
-      teamShort(teamKey);
-
-    const logo =
-      metaObj?.logo ||
-      metaObj?.logo_url ||
-      metaObj?.logoUrl ||
-      metaObj?.team_logo ||
-      null;
+    const name = metaObj?.name || metaObj?.team_name || metaObj?.teamName || teamShort(teamKey);
+    const logo = metaObj?.logo || metaObj?.logo_url || metaObj?.logoUrl || metaObj?.team_logo || null;
 
     const th = el("div", "draft-team-header");
 
@@ -92,6 +113,8 @@ async function loadDraftBoard() {
       img.src = logo;
       img.alt = name;
       img.loading = "lazy";
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
       th.appendChild(img);
     }
 
@@ -101,14 +124,9 @@ async function loadDraftBoard() {
 
   boardEl.appendChild(header);
 
-  // -----------------------
   // Grid body
-  // -----------------------
   const grid = el("div", "draft-grid");
-
-  const maxRound =
-    Number(meta?.maxRound) ||
-    Math.max(...rounds.map((r) => Number(r.round || 0)));
+  const maxRound = Number(meta?.maxRound) || Math.max(...rounds.map((r) => Number(r.round || 0)));
 
   for (let r = 1; r <= maxRound; r++) {
     const row = el("div", "draft-row");
@@ -123,9 +141,9 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
+        // Top line: pick # + (Keeper badge) on left, position/team on right
         const top = el("div", "draft-pick-top");
 
-        // left: #pick + keeper badge beside it
         const left = el("div", "draft-pick-left");
         left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
@@ -133,15 +151,19 @@ async function loadDraftBoard() {
           left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
         }
 
-        // right: pos/team
-        const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
-        const right = el("div", "draft-pick-meta", metaText);
+        const right = el(
+          "div",
+          "draft-pick-meta",
+          `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim()
+        );
 
         top.appendChild(left);
         top.appendChild(right);
 
         cell.appendChild(top);
-        cell.appendChild(el("div", "draft-player-name", pick.player_name || "—"));
+
+        // Player row: portrait + name
+        cell.appendChild(buildPortrait(pick));
       }
 
       row.appendChild(cell);
