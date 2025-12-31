@@ -32,13 +32,13 @@ body {
   color: var(--text);
 }
 
-/* If your draft.html uses these wrappers, keep it full-width */
+/* Full-width shell */
 .app-shell {
   min-height: 100vh;
   width: 100%;
-  max-width: none;         /* <-- full width */
-  margin: 0;               /* <-- no centering gap */
-  padding: 24px 16px 32px; /* keep breathing room */
+  max-width: none;
+  margin: 0;
+  padding: 24px 16px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -108,16 +108,17 @@ body {
 
 .draft-board-wrapper {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto;         /* keep scrollbar (working grid) */
   padding-bottom: 8px;
-  /* helps the board visually start at the left edge */
+
+  /* stretch board to edges while keeping page padding */
   margin-left: -16px;
   margin-right: -16px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-/* Grid container (holds rows) */
+/* grid container holds rows */
 .draft-grid {
   display: grid;
   grid-auto-rows: auto;
@@ -129,10 +130,10 @@ body {
    Header Row
 ========================= */
 
-/* Make Rnd column thinner */
+/* thinner Rnd column */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 22px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
   position: sticky;
   top: 0;
@@ -161,14 +162,14 @@ body {
   text-align: center;
 }
 
-/* Support either <img class="draft-team-logo"> OR plain <img> inside header */
+/* logo */
 .draft-team-header img,
 .draft-team-logo {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  display: block; /* ensure it actually shows */
+  display: block;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.35);
 }
@@ -186,7 +187,7 @@ body {
 
 .draft-row {
   display: grid;
-  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 22px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
 }
 
@@ -218,21 +219,20 @@ body {
   font-size: 0.75rem;
 }
 
-/* Pick meta row */
 .draft-pick-top {
   display: flex;
-  align-items: center;          /* keep badge aligned with # */
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
-/* Left side of the top row (pick # + badge beside it) */
+/* pick # + keeper badge beside it */
 .draft-pick-left {
   display: inline-flex;
   align-items: center;
-  gap: 6px;                     /* badge beside pick number */
+  gap: 6px;
   min-width: 0;
 }
 
@@ -241,7 +241,6 @@ body {
   font-weight: 600;
 }
 
-/* Right side meta (pos/team) */
 .draft-pick-meta {
   color: var(--text-muted);
   white-space: nowrap;
@@ -250,7 +249,6 @@ body {
   max-width: 110px;
 }
 
-/* Player name */
 .draft-player-name {
   font-size: 0.8rem;
   font-weight: 600;
@@ -258,7 +256,6 @@ body {
   color: var(--text);
 }
 
-/* Keeper badge */
 .draft-keeper-badge {
   display: inline-flex;
   align-items: center;
@@ -273,20 +270,20 @@ body {
 }
 
 /* =========================
-   Responsive Tweaks
+   Responsive
 ========================= */
 
 @media (max-width: 900px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 24px repeat(var(--cols), minmax(120px, 1fr));
+    grid-template-columns: 20px repeat(var(--cols), minmax(120px, 1fr));
   }
 }
 
 @media (max-width: 600px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 22px repeat(var(--cols), minmax(110px, 1fr));
+    grid-template-columns: 18px repeat(var(--cols), minmax(110px, 1fr));
   }
 
   .draft-team-name {
