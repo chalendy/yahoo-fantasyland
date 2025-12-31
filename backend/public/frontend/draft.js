@@ -23,10 +23,10 @@ function el(tag, className, text) {
 function getTeamMeta(data, teamKey) {
   const sources = [
     data?.teamsByKey,
-    data?.teamsByKeyMap,
     data?.teams,
     data?.teamMeta,
     data?.teamMap,
+    data?.teamsByKeyMap,
   ];
   for (const src of sources) {
     if (src && typeof src === "object" && src[teamKey]) return src[teamKey];
@@ -40,7 +40,7 @@ function teamShort(teamKey) {
 }
 
 // -------------------------
-// Rosters map helpers (current rosters)
+// Eligibility helpers
 // -------------------------
 function getCurrentRostersMap(data) {
   return (
@@ -58,115 +58,46 @@ function normalizeRosterMap(rostersMap) {
 
   const out = {};
   for (const [teamKey, arr] of Object.entries(rostersMap)) {
-    if (Array.isArray(arr)) {
-      out[teamKey] = new Set(arr.filter(Boolean).map(String));
-    } else if (arr && typeof arr === "object" && Array.isArray(arr.players)) {
+    if (Array.isArray(arr)) out[teamKey] = new Set(arr.filter(Boolean).map(String));
+    else if (arr && typeof arr === "object" && Array.isArray(arr.players)) {
       out[teamKey] = new Set(arr.players.filter(Boolean).map(String));
     }
   }
   return out;
 }
 
-// -------------------------
-// Dropped / traded disqualifier helpers
-// We try multiple shapes that your server might return.
-// Supported patterns (any one):
-//   data.disqualifiedByTeamKey[team_key] = ["461.p.x", ...]
-//   data.droppedOrTradedByTeamKey[team_key] = ["461.p.x", ...]
-//   data.playerMoveDisqualifyByTeamKey[team_key] = ["461.p.x", ...]
-//   data.disqualifiedPlayerKeys = ["461.p.x", ...] (global)
-//   data.playerMovesByTeamKey[team_key][player_key] = { dropped:true, traded:true } or boolean
-//   pick.was_dropped_or_traded / pick.was_dropped / pick.was_traded (per-pick flags)
-// -------------------------
-function getDisqualifyMap(data) {
-  return (
-    data?.disqualifiedByTeamKey ||
-    data?.droppedOrTradedByTeamKey ||
-    data?.playerMoveDisqualifyByTeamKey ||
-    data?.disqualified_by_team ||
-    null
-  );
-}
-
-function normalizeDisqualifyMap(raw) {
-  // team_key -> Set(player_key)
-  if (!raw || typeof raw !== "object") return null;
-
-  const out = {};
-  for (const [teamKey, v] of Object.entries(raw)) {
-    if (Array.isArray(v)) {
-      out[teamKey] = new Set(v.filter(Boolean).map(String));
-    } else if (v && typeof v === "object") {
-      // maybe { players: [...] }
-      if (Array.isArray(v.players)) out[teamKey] = new Set(v.players.filter(Boolean).map(String));
-      // maybe { "461.p.x": true, ... }
-      else out[teamKey] = new Set(Object.keys(v).map(String));
-    }
-  }
-  return out;
-}
-
-function getGlobalDisqualifySet(data) {
-  const arr =
-    data?.disqualifiedPlayerKeys ||
-    data?.disqualified_player_keys ||
-    data?.droppedOrTradedPlayerKeys ||
-    null;
-
-  if (Array.isArray(arr)) return new Set(arr.filter(Boolean).map(String));
-  return null;
-}
-
-function pickIsDisqualified(pick, teamKey, disqualifyByTeamSet, globalDisqualifySet) {
-  // Per-pick flags from server (strongest, simplest)
-  if (pick?.was_dropped_or_traded === true) return true;
-  if (pick?.was_dropped === true) return true;
-  if (pick?.was_traded === true) return true;
-
-  const pk = String(pick?.player_key || "");
-  if (!pk) return false;
-
-  if (globalDisqualifySet?.has(pk)) return true;
-
-  const teamSet = disqualifyByTeamSet?.[teamKey];
-  if (teamSet?.has(pk)) return true;
-
-  return false;
+function getMovedPlayersSet(data) {
+  const raw = data?.movedPlayers;
+  if (!Array.isArray(raw)) return null;
+  return new Set(raw.filter(Boolean).map(String));
 }
 
 // -------------------------
-// Toggle UI (moved to its own header line)
+// Toggle UI
 // -------------------------
 let keeperToggleState = {
   enabled: false,
   ready: false,
 };
 
-function ensureToggleUI() {
-  // avoid duplicating
-  if (document.getElementById("keeperEligibleToggle")) return;
+// Prefer a dedicated container in the header:
 
-  // We want it on its own line in the header.
-  // Try common wrappers in your page:
-  const headerHost =
+// <div id="draftHeaderRow"></div>
+
+function getToggleHost() {
+
+  return (
+
+    document.getElementById("draftHeaderRow") ||
+
+    document.querySelector(".button-row") ||
+
+    document.querySelector(".controls-card") ||
+
     document.querySelector(".app-header") ||
-    document.querySelector("header") ||
     document.body;
 
-  // Create a full-width row under the header content
-  let row = document.getElementById("draftToggleRow");
-  if (!row) {
-    row = el("div", "draft-toggle-row");
-    row.id = "draftToggleRow";
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "10px";
-    row.style.flexWrap = "wrap";
-    row.style.marginTop = "10px";
-
-    // Insert AFTER the header block (so it's its own line)
-    headerHost.appendChild(row);
-  }
+  if (document.getElementById("keeperEligibleToggle")) return;
 
   const wrap = el("label", "btn btn-secondary");
   wrap.style.display = "inline-flex";
@@ -180,7 +111,7 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el("span", "", "Show keeper-eligible (Rd 6+, rostered, not keeper, not dropped/traded)");
+  const txt = el("span", "", "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)");
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -189,7 +120,19 @@ function ensureToggleUI() {
     if (window.__draftDataCache) renderBoard(window.__draftDataCache);
   });
 
-  row.appendChild(wrap);
+    // If host is the dedicated container, keep it on its own line
+
+  if (host && host.id === "draftHeaderRow") {
+
+    host.innerHTML = ""; // keep it clean/owned by this feature
+
+    host.appendChild(wrap);
+
+  } else if (host?.classList?.contains("button-row")) {
+    host.appendChild(wrap);
+  } else {
+    boardEl?.parentNode?.insertBefore(wrap, boardEl);
+  }
 }
 
 function setToggleReady(isReady) {
@@ -200,7 +143,7 @@ function setToggleReady(isReady) {
   cb.disabled = !isReady;
   cb.title = isReady
     ? ""
-    : "Roster/transaction eligibility data not included in /draftboard-data yet.";
+    : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
 }
 
 // -------------------------
@@ -226,17 +169,9 @@ async function loadDraftBoard() {
 
   window.__draftDataCache = data;
 
-  // "Ready" if we can compute eligibility (rosters + some dropped/trade signal OR per-pick flags)
   const rosterSets = normalizeRosterMap(getCurrentRostersMap(data));
-  const disqualifySets = normalizeDisqualifyMap(getDisqualifyMap(data));
-  const globalSet = getGlobalDisqualifySet(data);
-
-  // If your server marks pick.was_dropped_or_traded, we can compute without maps too.
-  const hasPerPickDisq =
-    Array.isArray(data?.rounds) &&
-    data.rounds.some((r) => (r?.picks || []).some((p) => p?.was_dropped_or_traded || p?.was_dropped || p?.was_traded));
-
-  setToggleReady(!!rosterSets && (hasPerPickDisq || !!disqualifySets || !!globalSet));
+  const movedSet = getMovedPlayersSet(data);
+  setToggleReady(!!rosterSets && !!movedSet);
 
   renderBoard(data);
 }
@@ -253,7 +188,6 @@ function renderBoard(data) {
     return;
   }
 
-  // Build lookup: round -> team_key -> pick info
   const byRoundTeam = new Map();
   for (const r of rounds) {
     const m = new Map();
@@ -261,17 +195,12 @@ function renderBoard(data) {
     byRoundTeam.set(Number(r.round), m);
   }
 
-  // Eligibility inputs
   const rosterSets = normalizeRosterMap(getCurrentRostersMap(data));
-  const disqualifyByTeamSet = normalizeDisqualifyMap(getDisqualifyMap(data));
-  const globalDisqualifySet = getGlobalDisqualifySet(data);
+  const movedSet = getMovedPlayersSet(data);
+  const canComputeEligibility = !!rosterSets && !!movedSet;
 
-  const canComputeEligibility = !!rosterSets && (keeperToggleState.ready || !!disqualifyByTeamSet || !!globalDisqualifySet);
-
-  // Set cols for CSS (repeat(var(--cols), ...))
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -308,7 +237,6 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
-  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
@@ -331,26 +259,25 @@ function renderBoard(data) {
         continue;
       }
 
-      // League eligibility:
-      // - drafted in Rd 6+
-      // - still on that team's roster
-      // - NOT a keeper (keepers cannot be kept again)
-      // - NOT dropped or traded at any point (per transactions)
+      // Eligible if:
+      // - drafted round >= 6
+      // - still on same team's roster NOW
+      // - NOT a keeper already
+      // - NEVER dropped/traded (movedSet)
       let isEligible = false;
-
       if (canComputeEligibility) {
-        const roster = rosterSets?.[teamKey];
+        const roster = rosterSets[teamKey];
         const roundNum = Number(pick.round);
         const playerKey = String(pick.player_key || "");
+        const neverMoved = !movedSet.has(playerKey);
 
-        const stillRostered = !!roster?.has(playerKey);
-        const notKeeper = pick.is_keeper !== true;
-        const notMoved = !pickIsDisqualified(pick, teamKey, disqualifyByTeamSet, globalDisqualifySet);
-
-        isEligible = roundNum >= 6 && stillRostered && notKeeper && notMoved;
+        isEligible =
+          roundNum >= 6 &&
+          !!roster?.has(playerKey) &&
+          !pick.is_keeper &&
+          neverMoved;
       }
 
-      // If toggle is ON and we can compute: dim non-eligible cells
       if (keeperToggleState.enabled && canComputeEligibility && !isEligible) {
         cell.style.opacity = "0.25";
         cell.style.filter = "grayscale(0.35)";
@@ -359,18 +286,15 @@ function renderBoard(data) {
         cell.style.filter = "";
       }
 
-      // Top row: pick # + badges on left, meta on right
       const top = el("div", "draft-pick-top");
 
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // Keeper badge (from API logic)
       if (pick.is_keeper) {
         left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
       }
 
-      // Eligibility badge (show only when toggle ON)
       if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
         left.appendChild(el("span", "draft-keeper-badge", "Eligible"));
       }
@@ -381,7 +305,6 @@ function renderBoard(data) {
       top.appendChild(left);
       top.appendChild(right);
 
-      // Player row: portrait + name (portrait optional)
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
@@ -418,7 +341,7 @@ function renderBoard(data) {
 
   if (keeperToggleState.enabled) {
     if (!canComputeEligibility) {
-      setStatus("Toggle needs roster + transaction eligibility data in /draftboard-data to calculate eligibility.");
+      setStatus("Toggle needs current rosters + movedPlayers included in /draftboard-data to calculate eligibility.");
     } else {
       setStatus(`Showing keeper eligibility · ${total || "?"} picks · ${maxRound} rounds`);
     }
