@@ -1,54 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Draft Board · Fantasy Land 2025</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Draft Board · Fantasy Land 2025</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- keep your global theme -->
+    <link rel="stylesheet" href="/styles.css" />
+    <!-- draft board styles -->
+    <link rel="stylesheet" href="/draft.css" />
 
-  <!-- Main app theme -->
-  <link rel="stylesheet" href="/style.css" />
+    <!-- Override the “centered container” behavior just for this page -->
+    <style>
+      /* Your global .app-shell is max-width: 1200px; this removes that cap on the draft page */
+      .app-shell.draft-shell {
+        max-width: none !important;
+        width: 100% !important;
+      }
 
-  <!-- Draft board styles -->
-  <link rel="stylesheet" href="/draft.css" />
-</head>
+      /* Make sure the main content can stretch full width */
+      .app-main {
+        width: 100%;
+      }
 
-<body>
-  <div class="app-shell">
+      /* Ensure the board starts at the left edge of the content area */
+      .draft-board-wrapper {
+        width: 100%;
+      }
+    </style>
+  </head>
 
-    <!-- Header -->
-    <header class="app-header">
-      <div>
-        <h1>Draft Board</h1>
-        <p class="subtitle">Fantasy Land 2025</p>
-      </div>
+  <body>
+    <div class="app-shell draft-shell">
+      <header class="app-header">
+        <div>
+          <h1>Draft Board</h1>
+          <p class="subtitle">Fantasy Land 2025</p>
+        </div>
 
-      <div class="button-row">
-        <a href="/" class="btn btn-secondary">← Back to Matchups</a>
-        <button id="reloadBtn" class="btn btn-primary">Reload</button>
-      </div>
-    </header>
+        <div class="button-row" style="margin: 0;">
+          <a class="btn btn-secondary" href="/index.html">← Back to Matchups</a>
+          <button class="btn btn-primary" id="reloadBtn" type="button">Reload</button>
+        </div>
+      </header>
 
-    <!-- Main content -->
-    <main class="app-main">
+      <main class="app-main">
+        <p class="status-message" id="status"></p>
 
-      <!-- Status -->
-      <p id="status" class="status-message"></p>
+        <section class="draft-board-wrapper">
+          <div id="draftBoard"></div>
+        </section>
 
-      <!-- FULL-WIDTH draft board -->
-      <section class="draft-board-wrapper">
-        <div id="draftBoard"></div>
-      </section>
+        <p class="hint" style="margin: 0;">
+          Columns are the Round 1 draft order. Rows are rounds.
+        </p>
+      </main>
 
-    </main>
+      <footer class="app-footer">Powered by Yahoo Fantasy API</footer>
+    </div>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      Powered by Yahoo Fantasy API
-    </footer>
-
-  </div>
-
-  <script src="/draft.js"></script>
-</body>
+    <script src="/draft.js" defer></script>
+  </body>
 </html>
