@@ -34,129 +34,12 @@ async function doFetch(url, options = {}) {
   return mod.default(url, options);
 }
 
-function requireAuth(req, res, next) {
+function requireAuth(req, res) {
   if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+    res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+    return false;
   }
-  next();
-}
-
-async function yahooGetText(url) {
-  const apiRes = await doFetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  const bodyText = await apiRes.text();
-  if (!apiRes.ok) {
-    const err = new Error(`Yahoo API error ${apiRes.status}`);
-    err.body = bodyText;
-    throw err;
-  }
-  return bodyText;
-}
-
-async function yahooGetJson(url) {
-  const txt = await yahooGetText(url);
-  return JSON.parse(txt);
-}
-
-// -----------------------------
-// Helpers to safely walk Yahoo JSON
-// -----------------------------
-function getLeagueNode(root) {
-  // root.fantasy_content.league is an array: [leagueMeta, payloadObject]
-  return root?.fantasy_content?.league;
-}
-
-function getLeaguePayload(root) {
-  const leagueArr = getLeagueNode(root);
-  if (!Array.isArray(leagueArr) || leagueArr.length < 2) return null;
-  return leagueArr[1];
-}
-
-function extractDraftResults(root) {
-  const payload = getLeaguePayload(root);
-  const dr = payload?.draft_results;
-  if (!dr) return [];
-  const out = [];
-  for (const k of Object.keys(dr)) {
-    if (k === "count") continue;
-    const item = dr[k]?.draft_result;
-    if (item) out.push(item);
-  }
-  // ensure sorted by pick number
-  out.sort((a, b) => Number(a.pick) - Number(b.pick));
-  return out;
-}
-
-function extractTeamsFromRosters(root) {
-  const payload = getLeaguePayload(root);
-  const teamsObj = payload?.teams;
-  if (!teamsObj) return [];
-  const teams = [];
-  for (const k of Object.keys(teamsObj)) {
-    if (k === "count") continue;
-    const teamArr = teamsObj[k]?.team;
-    if (Array.isArray(teamArr)) teams.push(teamArr);
-  }
-  return teams;
-}
-
-function parseTeamHeader(teamArr) {
-  // teamArr[0] is the "team info list"
-  const infoList = teamArr?.[0];
-  const getVal = (idx, key) => infoList?.[idx]?.[key];
-  const team_key = getVal(0, "team_key");
-  const name = getVal(2, "name") || team_key;
-  const logos = infoList?.[5]?.team_logos;
-  let logo_url = "";
-  if (Array.isArray(logos) && logos[0]?.team_logo?.url) logo_url = logos[0].team_logo.url;
-
-  return { team_key, name, logo_url };
-}
-
-function collectWeek1KeepersFromRosterJson(rosterJson) {
-  const keeperSet = new Set();
-  const teams = extractTeamsFromRosters(rosterJson);
-
-  for (const teamArr of teams) {
-    const rosterNode = teamArr?.[1]?.roster;
-    if (!rosterNode) continue;
-
-    // rosterNode has numeric keys: "0": { players: {...}}, plus coverage_type/week etc.
-    for (const rk of Object.keys(rosterNode)) {
-      if (!/^\d+$/.test(rk)) continue;
-      const playersObj = rosterNode?.[rk]?.players;
-      if (!playersObj) continue;
-
-      for (const pk of Object.keys(playersObj)) {
-        if (pk === "count") continue;
-        const playerArr = playersObj[pk]?.player;
-        const playerInfo = playerArr?.[0]; // info list
-        if (!Array.isArray(playerInfo)) continue;
-
-        const player_key = playerInfo?.[0]?.player_key;
-        const isKeeper = playerInfo?.[9]?.is_keeper; // per your raw, is_keeper shows up around here
-        // Make it resilient: scan for is_keeper object anywhere in the info list
-        let keeperFlag = false;
-
-        if (isKeeper && typeof isKeeper === "object") {
-          keeperFlag = Boolean(isKeeper.status) || Boolean(isKeeper.kept);
-        } else {
-          for (const node of playerInfo) {
-            if (node?.is_keeper && typeof node.is_keeper === "object") {
-              keeperFlag = Boolean(node.is_keeper.status) || Boolean(node.is_keeper.kept);
-              break;
-            }
-          }
-        }
-
-        if (keeperFlag && player_key) keeperSet.add(player_key);
-      }
-    }
-  }
-
-  return keeperSet;
+  return true;
 }
 
 // -----------------------------
@@ -214,7 +97,9 @@ app.get("/auth/callback", async (req, res) => {
 // -----------------------------
 //  SCOREBOARD (supports ?week=)
 // -----------------------------
-app.get("/scoreboard", requireAuth, async (req, res) => {
+app.get("/scoreboard", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     const week = req.query.week ? String(req.query.week) : null;
     const url =
@@ -224,62 +109,86 @@ app.get("/scoreboard", requireAuth, async (req, res) => {
           )}?format=json`
         : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
 
-    const bodyText = await yahooGetText(url);
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Scoreboard error:", err);
-    res.status(500).json({ error: "Failed to fetch scoreboard", details: err.body || String(err) });
+    res.status(500).json({ error: "Failed to fetch scoreboard" });
   }
 });
 
 // -----------------------------
 //  STANDINGS RAW
 // -----------------------------
-app.get("/standings-raw", requireAuth, async (req, res) => {
+app.get("/standings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
-    const bodyText = await yahooGetText(url);
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Standings fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch league standings", details: err.body || String(err) });
+    res.status(500).json({ error: "Failed to fetch league standings" });
   }
 });
 
 // -----------------------------
 //  SETTINGS RAW
 // -----------------------------
-app.get("/settings-raw", requireAuth, async (req, res) => {
+app.get("/settings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
-    const bodyText = await yahooGetText(url);
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Settings fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch league settings", details: err.body || String(err) });
+    res.status(500).json({ error: "Failed to fetch league settings" });
   }
 });
 
 // -----------------------------
-//  NEW: DRAFT RESULTS RAW
+//  DRAFT RESULTS RAW
 // -----------------------------
-app.get("/draftresults-raw", requireAuth, async (req, res) => {
+app.get("/draftresults-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
-    const bodyText = await yahooGetText(url);
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Draftresults fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch draft results", details: err.body || String(err) });
+    res.status(500).json({ error: "Failed to fetch draft results" });
   }
 });
 
 // -----------------------------
-//  NEW: ROSTERS RAW (supports ?week=)
+//  ROSTERS RAW (supports ?week=)
 // -----------------------------
-app.get("/rosters-raw", requireAuth, async (req, res) => {
+app.get("/rosters-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     const week = req.query.week ? String(req.query.week) : null;
+
     const url =
       week && week.trim()
         ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
@@ -287,120 +196,181 @@ app.get("/rosters-raw", requireAuth, async (req, res) => {
           )}?format=json`
         : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
 
-    const bodyText = await yahooGetText(url);
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
     res.type("application/json").send(bodyText);
   } catch (err) {
     console.error("Rosters fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch rosters", details: err.body || String(err) });
+    res.status(500).json({ error: "Failed to fetch rosters" });
   }
 });
 
 // -----------------------------
-//  NEW: DRAFTBOARD DATA (names + logos + keeper flag from Week 1 rosters)
+//  DRAFTBOARD DATA (frontend-friendly)
+//  - teamsByKey: team name/logo/manager (from week 1 rosters)
+//  - keeper flags: from week 1 roster is_keeper.status === true
+//  - player name fallback: from week 1 roster player map if draftresults lacks it
 // -----------------------------
-app.get("/draftboard-data", requireAuth, async (req, res) => {
+app.get("/draftboard-data", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
   try {
     // 1) draft results
-    const draftJson = await yahooGetJson(
-      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`
-    );
+    const draftUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
+    const draftRes = await doFetch(draftUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const draftText = await draftRes.text();
+    if (!draftRes.ok) return res.status(500).json({ error: "Yahoo API error (draft)", body: draftText });
+    const draftJson = JSON.parse(draftText);
 
-    const draftResults = extractDraftResults(draftJson);
-    if (!draftResults.length) {
-      return res.json({ meta: { totalPicks: 0, maxRound: 0 }, draftOrder: [], rounds: [], teamsByKey: {} });
-    }
+    // 2) rosters week 1 (for team names/logos + keeper flags + name fallback)
+    const rosterUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=1?format=json`;
+    const rosterRes = await doFetch(rosterUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const rosterText = await rosterRes.text();
+    if (!rosterRes.ok) return res.status(500).json({ error: "Yahoo API error (rosters)", body: rosterText });
+    const rosterJson = JSON.parse(rosterText);
 
-    // 2) Teams (for names/logos) — easiest source: standings
-    const standingsJson = await yahooGetJson(
-      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`
-    );
+    // ---------- helpers to deal with Yahoo's arrays-of-objects structure ----------
+    const getFromTeamBlock = (teamArr, key) => {
+      // teamArr is like: [ [ {team_key...}, {team_id...}, {name...}, ... ], { roster: {...} } ]
+      // team meta is inside teamArr[0] (array)
+      const metaList = teamArr?.[0];
+      if (!Array.isArray(metaList)) return null;
+      const found = metaList.find((o) => o && typeof o === "object" && Object.prototype.hasOwnProperty.call(o, key));
+      return found ? found[key] : null;
+    };
 
-    const payload = getLeaguePayload(standingsJson);
-    const teams = payload?.standings?.[0]?.teams || payload?.teams || null;
+    const getTeamLogoUrl = (teamArr) => {
+      const logos = getFromTeamBlock(teamArr, "team_logos");
+      const url = logos?.[0]?.team_logo?.url;
+      return typeof url === "string" ? url : "";
+    };
 
-    // parse teams from standings-like structure
+    const getTeamManagerNick = (teamArr) => {
+      const managers = getFromTeamBlock(teamArr, "managers");
+      const nick = managers?.[0]?.manager?.nickname;
+      return typeof nick === "string" ? nick : "";
+    };
+
+    // Build teamsByKey + playerMap + keeperSet from week1 rosters
     const teamsByKey = {};
-    if (teams) {
-      for (const k of Object.keys(teams)) {
-        if (k === "count") continue;
-        const teamArr = teams[k]?.team;
-        if (!Array.isArray(teamArr)) continue;
-        const t = parseTeamHeader(teamArr);
-        if (t.team_key) teamsByKey[t.team_key] = t;
+    const playerMap = {}; // player_key -> { name, pos, teamAbbr }
+    const keeperSet = new Set();
+
+    const teamsObj = rosterJson?.fantasy_content?.league?.[1]?.teams;
+    const teamCount = teamsObj?.count || 0;
+
+    for (let i = 0; i < teamCount; i++) {
+      const teamArr = teamsObj?.[String(i)]?.team;
+      if (!teamArr) continue;
+
+      const team_key = getFromTeamBlock(teamArr, "team_key");
+      const name = getFromTeamBlock(teamArr, "name") || "";
+      const logo_url = getTeamLogoUrl(teamArr);
+      const manager = getTeamManagerNick(teamArr);
+
+      if (team_key) {
+        teamsByKey[team_key] = { team_key, name, logo_url, manager };
       }
-    }
 
-    // 3) Week 1 rosters -> keeperSet
-    const week1RosterJson = await yahooGetJson(
-      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=1?format=json`
-    );
-    const keeperSet = collectWeek1KeepersFromRosterJson(week1RosterJson);
+      // roster players
+      const roster = teamArr?.[1]?.roster;
+      // roster has numeric keys "0","1","2"... each contains { players: {...} }
+      if (!roster) continue;
 
-    // 4) Player metadata for drafted players (name/pos/team)
-    const playerKeys = [...new Set(draftResults.map((d) => d.player_key).filter(Boolean))];
-    const playerKeyStr = playerKeys.join(",");
-    const playerMap = {};
+      const rosterSlots = Object.keys(roster).filter((k) => /^\d+$/.test(k));
+      for (const slotKey of rosterSlots) {
+        const playersObj = roster?.[slotKey]?.players;
+        const pCount = playersObj?.count || 0;
 
-    if (playerKeys.length) {
-      // This endpoint returns players; we’ll map by player_key
-      const playersJson = await yahooGetJson(
-        `https://fantasysports.yahooapis.com/fantasy/v2/players;player_keys=${encodeURIComponent(playerKeyStr)}?format=json`
-      );
+        for (let p = 0; p < pCount; p++) {
+          const playerArr = playersObj?.[String(p)]?.player;
+          const meta = playerArr?.[0];
+          if (!Array.isArray(meta)) continue;
 
-      const playersPayload = playersJson?.fantasy_content?.players;
-      if (playersPayload) {
-        for (const pk of Object.keys(playersPayload)) {
-          if (pk === "count") continue;
-          const pArr = playersPayload[pk]?.player;
-          const info = pArr?.[0];
-          if (!Array.isArray(info)) continue;
+          const pk = meta.find((x) => x?.player_key)?.player_key;
+          const nm = meta.find((x) => x?.name)?.name?.full;
+          const pos = meta.find((x) => x?.display_position)?.display_position;
+          const abbr = meta.find((x) => x?.editorial_team_abbr)?.editorial_team_abbr;
 
-          const key = info?.[0]?.player_key;
-          const name = info?.[2]?.name?.full || key;
-          const pos = info?.[12]?.display_position || info?.[14]?.primary_position || "";
-          const team = info?.[7]?.editorial_team_abbr || "";
-          if (key) playerMap[key] = { name, pos, team };
+          const isKeeperObj = meta.find((x) => x?.is_keeper)?.is_keeper;
+          const isKeeper = !!isKeeperObj?.status;
+
+          if (pk) {
+            playerMap[pk] = {
+              name: typeof nm === "string" ? nm : pk,
+              pos: typeof pos === "string" ? pos : "",
+              teamAbbr: typeof abbr === "string" ? abbr : "",
+            };
+            if (isKeeper) keeperSet.add(pk);
+          }
         }
       }
     }
 
-    // 5) Draft order = round 1 order by pick
-    const round1 = draftResults.filter((d) => Number(d.round) === 1).sort((a, b) => Number(a.pick) - Number(b.pick));
-    const draftOrder = round1.map((d) => d.team_key);
+    // Parse draft results into rounds + determine draftOrder from Round 1
+    const dr = draftJson?.fantasy_content?.league?.[1]?.draft_results;
+    const totalPicks = dr?.count || 0;
 
-    // 6) Build rounds object
-    const maxRound = Math.max(...draftResults.map((d) => Number(d.round)));
+    const picks = [];
+    for (let i = 0; i < totalPicks; i++) {
+      const d = dr?.[String(i)]?.draft_result;
+      if (!d) continue;
+      picks.push({
+        pick: Number(d.pick),
+        round: Number(d.round),
+        team_key: d.team_key,
+        player_key: d.player_key,
+      });
+    }
+
+    const maxRound = picks.reduce((m, p) => Math.max(m, p.round || 0), 0);
+
+    // draft order = sorted by pick within round 1
+    const round1 = picks
+      .filter((p) => p.round === 1)
+      .sort((a, b) => (a.pick ?? 0) - (b.pick ?? 0));
+
+    const draftOrder = round1.map((p) => p.team_key);
+
+    // build rounds
     const rounds = [];
     for (let r = 1; r <= maxRound; r++) {
-      const picks = draftResults
-        .filter((d) => Number(d.round) === r)
-        .sort((a, b) => Number(a.pick) - Number(b.pick))
-        .map((d) => {
-          const meta = playerMap[d.player_key] || null;
+      const roundPicks = picks
+        .filter((p) => p.round === r)
+        .sort((a, b) => (a.pick ?? 0) - (b.pick ?? 0))
+        .map((p) => {
+          // name/pos/team from playerMap fallback
+          const pm = playerMap[p.player_key] || null;
+
+          const player_name = pm?.name || p.player_key;
+          const player_pos = pm?.pos || "";
+          const player_team = pm?.teamAbbr || "";
+
           return {
-            pick: Number(d.pick),
-            round: Number(d.round),
-            team_key: d.team_key,
-            player_key: d.player_key,
-            player_name: meta?.name || d.player_key,
-            player_pos: meta?.pos || "",
-            player_team: meta?.team || "",
-            is_keeper: keeperSet.has(d.player_key),
+            ...p,
+            player_name,
+            player_pos,
+            player_team,
+            // keeper flag purely from week 1 roster keeper status
+            is_keeper: keeperSet.has(p.player_key),
           };
         });
 
-      rounds.push({ round: r, picks });
+      rounds.push({ round: r, picks: roundPicks });
     }
 
     res.json({
-      meta: { totalPicks: draftResults.length, maxRound },
+      meta: { totalPicks, maxRound },
+      teamsByKey, // ✅ this is what your frontend needs for names/logos
       draftOrder,
       rounds,
-      teamsByKey,
     });
   } catch (err) {
-    console.error("Draftboard-data error:", err);
-    res.status(500).json({ error: "Failed to build draftboard data", details: err.body || String(err) });
+    console.error("draftboard-data error:", err);
+    res.status(500).json({ error: "Failed to build draft board data" });
   }
 });
 
