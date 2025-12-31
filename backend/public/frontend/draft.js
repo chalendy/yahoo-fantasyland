@@ -100,7 +100,7 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el("span", "", "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)");
+  const txt = el("span", "", "Show keeper-eligible (Rd 6+, no drop/trade)");
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
