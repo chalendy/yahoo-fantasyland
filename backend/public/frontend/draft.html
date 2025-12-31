@@ -3,57 +3,111 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Draft Board • Fantasy Land 2025</title>
+    <title>Draft Board</title>
 
-    <!-- Use your existing global theme css -->
+    <!-- If you already use a shared stylesheet, keep it -->
     <link rel="stylesheet" href="styles.css" />
 
-    <!-- Optional: tiny draft-only tweaks (safe if you already have these classes) -->
+    <!-- Draft-board specific styling (kept local so it doesn't mess with other pages) -->
     <style>
-      .draft-grid-header,
+      .draft-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .draft-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .draft-title h1 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
+
+      .draft-title .subtitle {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .draft-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .draft-status {
+        font-size: 0.85rem;
+        color: var(--accent-strong);
+        margin: 0;
+      }
+
+      /* --- Board container --- */
+      .draft-board-wrap {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 12px;
+        overflow: auto;
+      }
+
+      /* One single grid template shared by header + rows */
+      .draft-grid {
+        --cols: 12;
+        --leftcol: 64px;
+        --mincol: 200px;
+
+        min-width: calc(var(--leftcol) + (var(--cols) * var(--mincol)));
+      }
+
+      .draft-header,
       .draft-row {
         display: grid;
+        grid-template-columns: var(--leftcol) repeat(var(--cols), minmax(180px, 1fr));
         gap: 10px;
       }
 
-      .draft-grid-header {
-        grid-template-columns: 64px repeat(var(--cols), minmax(180px, 1fr));
+      /* Sticky header so it stays visible while you scroll */
+      .draft-header {
         position: sticky;
         top: 0;
         z-index: 5;
-        background: var(--bg-elevated);
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--border-subtle);
+        padding: 8px 6px 10px;
+        background: linear-gradient(180deg, rgba(6, 7, 20, 0.95), rgba(6, 7, 20, 0.65));
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        margin-bottom: 10px;
+        backdrop-filter: blur(10px);
       }
 
-      .draft-row {
-        grid-template-columns: 64px repeat(var(--cols), minmax(180px, 1fr));
-      }
-
-      .draft-corner,
-      .draft-round-cell {
+      .draft-corner {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
         color: var(--text-muted);
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--border-subtle);
-        height: 64px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
 
       .draft-team-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: var(--radius-md);
-        background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-          radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 55%),
-          var(--bg-elevated-soft);
+        background: var(--bg-elevated-soft);
         border: 1px solid var(--border-subtle);
-        min-height: 64px;
+        border-radius: var(--radius-md);
+        padding: 10px 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-height: 54px;
       }
 
       .draft-team-logo {
@@ -66,7 +120,7 @@
         flex: 0 0 auto;
       }
 
-      .draft-team-text {
+      .draft-team-meta {
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -74,7 +128,7 @@
       }
 
       .draft-team-name {
-        font-weight: 800;
+        font-weight: 700;
         font-size: 0.9rem;
         line-height: 1.1;
         white-space: nowrap;
@@ -82,21 +136,38 @@
         text-overflow: ellipsis;
       }
 
-      .draft-team-sub {
-        font-size: 0.75rem;
+      .draft-team-key {
         color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+
+      .draft-row {
+        padding: 6px;
+        margin-bottom: 6px;
+      }
+
+      .draft-round-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        color: var(--text-muted);
+        font-weight: 700;
       }
 
       .draft-pick-cell {
+        background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+          radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.14), transparent 55%),
+          var(--bg-elevated-soft);
         border-radius: var(--radius-md);
         border: 1px solid var(--border-subtle);
-        background: var(--bg-elevated-soft);
-        padding: 10px 12px;
-        min-height: 64px;
+        padding: 10px 10px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 6px;
+        gap: 8px;
+        min-height: 70px;
       }
 
       .draft-pick-top {
@@ -107,9 +178,9 @@
       }
 
       .draft-pick-num {
-        font-weight: 800;
-        color: var(--accent-strong);
-        font-size: 0.8rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-weight: 700;
       }
 
       .draft-pick-meta {
@@ -121,92 +192,69 @@
       }
 
       .draft-player-name {
-        font-weight: 750;
-        font-size: 0.92rem;
-        line-height: 1.15;
+        font-weight: 800;
+        font-size: 0.95rem;
+        line-height: 1.1;
       }
 
-      .draft-pick-empty {
-        color: var(--text-muted);
+      .draft-empty {
+        color: rgba(255, 255, 255, 0.35);
         font-weight: 700;
-      }
-
-      .draft-keeper-badge {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
-        padding: 2px 8px;
-        border-radius: 999px;
+        height: 100%;
+      }
+
+      .draft-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-size: 0.7rem;
-        font-weight: 800;
-        letter-spacing: 0.04em;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 142, 60, 0.28);
         background: rgba(255, 142, 60, 0.12);
         color: var(--accent-strong);
-        border: 1px solid rgba(255, 142, 60, 0.28);
-        margin-left: 8px;
-        flex: 0 0 auto;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
       }
 
-      .draft-pick-cell.is-keeper {
-        background: radial-gradient(circle at top left, rgba(255, 142, 60, 0.10), transparent 45%),
-          var(--bg-elevated-soft);
-        border-color: rgba(255, 142, 60, 0.22);
-      }
-
-      /* Mobile: allow horizontal scroll */
-      .draft-board-scroll {
-        overflow-x: auto;
-        padding-bottom: 8px;
-      }
-      .draft-board-scroll::-webkit-scrollbar {
-        height: 10px;
-      }
-
-      @media (max-width: 700px) {
-        .draft-grid-header,
-        .draft-row {
-          grid-template-columns: 56px repeat(var(--cols), minmax(170px, 1fr));
+      @media (max-width: 600px) {
+        .draft-team-name {
+          font-size: 0.85rem;
+        }
+        .draft-pick-cell {
+          min-height: 64px;
         }
       }
     </style>
   </head>
 
   <body>
-    <div class="app-shell">
-      <header class="app-header">
-        <div>
+    <div class="draft-shell">
+      <div class="draft-topbar">
+        <div class="draft-title">
           <h1>Draft Board</h1>
           <p class="subtitle">Fantasy Land 2025</p>
         </div>
 
-        <div class="button-row">
-          <a class="btn btn-secondary" href="/index.html">Back to Matchups</a>
-          <button id="reloadBtn" class="btn btn-primary" type="button">Reload</button>
+        <div class="draft-actions">
+          <a class="btn btn-secondary" href="/">Back to Matchups</a>
+          <button class="btn btn-primary" id="reloadBtn" type="button">Reload</button>
         </div>
-      </header>
+      </div>
 
-      <main class="app-main">
-        <section class="controls-card">
-          <h2>Draft Board</h2>
-          <p class="hint">Columns are the Round 1 draft order. Rows are rounds.</p>
-          <p id="status" class="status-message"></p>
-        </section>
+      <p class="draft-status" id="status"></p>
 
-        <section class="matchups-panel">
-          <div class="panel-header">
-            <h2>Board</h2>
-            <span class="json-pill">Keeper = unmapped pick</span>
-          </div>
+      <div class="draft-board-wrap">
+        <div id="draftBoard"></div>
+      </div>
 
-          <div class="draft-board-scroll">
-            <div id="draftBoard"></div>
-          </div>
-        </section>
-      </main>
-
-      <footer class="app-footer">Powered by Yahoo Fantasy API</footer>
+      <p class="app-footer">Powered by Yahoo Fantasy API</p>
     </div>
 
-    <script defer src="draft.js"></script>
+    <script type="module" src="draft.js"></script>
   </body>
 </html>
