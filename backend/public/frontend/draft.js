@@ -82,13 +82,12 @@ async function loadDraftBoard() {
     const th = el("div", "draft-team-header");
 
     // Logo (if we have it)
-    if (team?.logo) {
+    const logoUrl = info?.logo || info?.logo_url || info?.team_logo || info?.teamLogo;
+    if (logoUrl) {
       const img = document.createElement("img");
-      img.src = team.logo;
-      img.alt = team?.name ? `${team.name} logo` : "Team logo";
-      img.loading = "lazy";
+      img.src = logoUrl;
+      img.alt = info?.name ? `${info.name} logo` : "Team logo";
       th.appendChild(img);
-    }
 
     // Name (fallback to T#)
     const fallbackName = `T${teamIdFromKey(teamKey) || teamKey.replace(/^.*\.t\./, "")}`;
