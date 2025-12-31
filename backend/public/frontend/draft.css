@@ -1,139 +1,18 @@
 /* =========================
-   Draft Page Theme (full)
-========================= */
-
-:root {
-  --bg: #060714;
-  --bg-elevated: #101322;
-  --bg-elevated-soft: #15182a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --accent: #7f5af0;
-  --accent-soft: rgba(127, 90, 240, 0.15);
-  --accent-strong: #ff8e3c;
-  --text: #f5f5f7;
-  --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
-  --radius-lg: 16px;
-  --radius-md: 10px;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
-  color: var(--text);
-}
-
-/* App shell (full width on draft page) */
-.app-shell {
-  min-height: 100vh;
-  width: 100%;
-  max-width: none;              /* IMPORTANT: not trapped in a 1200px container */
-  margin: 0;
-  padding: 24px 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.app-main {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.app-footer {
-  margin-top: auto;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* Buttons (match your theme) */
-.btn {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), #c34eff);
-  color: white;
-  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
-}
-
-.btn-secondary {
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background: #1e2236;
-}
-
-/* Status line */
-.status-message {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--accent-strong);
-}
-
-/* =========================
    Draft Board Layout
 ========================= */
 
 .draft-board-wrapper {
   width: 100%;
-  overflow-x: auto;          /* keep scrollbar (working version) */
-  padding-bottom: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
 }
 
 /* Grid container */
 .draft-grid {
   display: grid;
   grid-auto-rows: auto;
-  gap: 6px;
+  gap: 8px;
   min-width: 100%;
 }
 
@@ -141,16 +20,15 @@ body {
    Header Row
 ========================= */
 
-/* Make Round column thinner */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 34px repeat(var(--cols), minmax(130px, 1fr));
-  gap: 6px;
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr));
+  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 5;
   background: var(--bg);
-  padding-bottom: 4px;
+  padding-bottom: 6px;
 }
 
 /* Round corner */
@@ -159,47 +37,41 @@ body {
   color: var(--text-muted);
   text-align: center;
   align-self: end;
-  padding-bottom: 2px;
 }
 
-/* Team header (ensure logos/names never get hidden) */
+/* Team header */
 .draft-team-header {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 6px 8px;
+  padding: 8px 6px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   text-align: center;
-  min-width: 0;
 }
 
 .draft-team-header img {
-  display: block;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .draft-team-name {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   line-height: 1.1;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--text);
 }
 
-/* Optional: small helper text like T7 */
-.draft-team-key {
+.draft-team-sub {
   font-size: 0.65rem;
   color: var(--text-muted);
+  line-height: 1;
 }
 
 /* =========================
@@ -208,8 +80,8 @@ body {
 
 .draft-row {
   display: grid;
-  grid-template-columns: 34px repeat(var(--cols), minmax(130px, 1fr));
-  gap: 6px;
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr));
+  gap: 8px;
 }
 
 /* Round label */
@@ -228,69 +100,68 @@ body {
   background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 8px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 56px;
-  min-width: 0;
+  gap: 6px;
+  min-height: 60px;
 }
 
 .draft-pick-empty {
   color: var(--text-muted);
   text-align: center;
   font-size: 0.75rem;
+  padding-top: 8px;
 }
 
-/* Pick meta row */
+/* Top row: pick + badge on left, meta on right */
 .draft-pick-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   font-size: 0.65rem;
   color: var(--text-muted);
-  gap: 8px;
 }
 
-/* IMPORTANT: make #69 + Keeper sit beside each other */
-.draft-pick-num {
+.draft-pick-left {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
 
-/* Right-side meta (WR · Cin) */
+.draft-pick-num {
+  font-weight: 700;
+  color: #cfd3ff;
+}
+
+/* Keeper badge */
+.draft-keeper-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--accent-strong);
+  border: 1px solid rgba(255, 142, 60, 0.35);
+  background: rgba(255, 142, 60, 0.12);
+}
+
+/* Right-side meta */
 .draft-pick-meta {
   white-space: nowrap;
-  margin-left: auto;
+  opacity: 0.95;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.15;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Keeper badge (badge styling) */
-.draft-keeper-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--accent-strong);
-  background: rgba(255, 142, 60, 0.12);
-  border: 1px solid rgba(255, 142, 60, 0.28);
-  line-height: 1.2;
+  line-height: 1.15;
+  color: var(--text);
 }
 
 /* =========================
@@ -300,21 +171,21 @@ body {
 @media (max-width: 900px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 30px repeat(var(--cols), minmax(120px, 1fr));
+    grid-template-columns: 28px repeat(var(--cols), minmax(120px, 1fr));
   }
 }
 
 @media (max-width: 600px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 28px repeat(var(--cols), minmax(110px, 1fr));
+    grid-template-columns: 26px repeat(var(--cols), minmax(110px, 1fr));
   }
 
   .draft-team-name {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
 
   .draft-player-name {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
   }
 }
