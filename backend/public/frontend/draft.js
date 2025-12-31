@@ -15,23 +15,14 @@ function el(tag, className, text) {
   return n;
 }
 
-function shortTeamKey(teamKey) {
-  // 461.l.38076.t.12 -> T12
-  return teamKey?.replace(/^.*\.t\./, "T") ?? "";
-}
-
-// If it didn't map, you said assume keeper. We'll flag those.
-function isKeeperPick(pick) {
+function isLikelyKeeperPick(pick) {
+  // Your rule: anything that doesn't get mapped => looks like "461.p.40899" and has no pos/team
   if (!pick) return false;
-
   const name = (pick.player_name || "").trim();
-  const pos = (pick.player_pos || "").trim();
-  const team = (pick.player_team || "").trim();
-
-  // Your observed failure mode: player_name becomes the raw key like "461.p.40899"
-  const looksLikeRawKey = /^(\d+)\.p\.\d+$/.test(name) || /^(\d+)\.p\.\d+$/.test(pick.player_key || "");
-
-  return looksLikeRawKey || (!name || name === pick.player_key) || (!pos && !team);
+  const key = (pick.player_key || "").trim();
+  const looksUnmapped = name && key && name === key;
+  const noMeta = !(pick.player_pos || "").trim() && !(pick.player_team || "").trim();
+  return looksUnmapped || noMeta;
 }
 
 async function loadDraftBoard() {
@@ -51,63 +42,66 @@ async function loadDraftBoard() {
 
   const { draftOrder, rounds, meta, teamsByKey } = data;
 
-  if (!draftOrder?.length || !meta?.maxRound) {
+  if (!draftOrder?.length || !rounds?.length) {
     setStatus("Draft data looks empty.");
     return;
   }
 
+  const teams = teamsByKey || {};
+
   // Build lookup: round -> team_key -> pick info
   const byRoundTeam = new Map();
-  for (const r of rounds || []) {
+  for (const r of rounds) {
     const m = new Map();
-    for (const p of r.picks || []) m.set(p.team_key, p);
+    for (const p of r.picks) m.set(p.team_key, p);
     byRoundTeam.set(r.round, m);
   }
 
   // Main grid wrapper
   const grid = el("div", "draft-grid");
-  grid.style.setProperty("--cols", String(draftOrder.length));
+  grid.style.setProperty("--cols", String(draftOrder.length + 1)); // +1 for round column
 
-  // Header row (same grid template as body rows)
-  const header = el("div", "draft-header");
+  // Header row
+  const header = el("div", "draft-grid-header");
+  header.style.setProperty("--cols", String(draftOrder.length + 1));
+
+  // Corner
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
+  // Team headers aligned to columns
   for (const teamKey of draftOrder) {
-    const teamMeta = teamsByKey?.[teamKey] || {};
-    const name = teamMeta.name || shortTeamKey(teamKey);
-    const logo = teamMeta.logo || teamMeta.logo_url || "";
+    const t = teams[teamKey] || { name: teamKey, logoUrl: "" };
 
     const th = el("div", "draft-team-header");
 
-    if (logo) {
+    const top = el("div", "draft-team-top");
+    if (t.logoUrl) {
       const img = document.createElement("img");
       img.className = "draft-team-logo";
-      img.src = logo;
-      img.alt = name;
+      img.src = t.logoUrl;
+      img.alt = t.name || "Team";
       img.loading = "lazy";
-      img.referrerPolicy = "no-referrer";
-      th.appendChild(img);
+      top.appendChild(img);
     } else {
-      // simple placeholder circle
-      const ph = el("div", "draft-team-logo");
-      th.appendChild(ph);
+      top.appendChild(el("div", "draft-team-logo draft-team-logo--placeholder", "🏈"));
     }
 
-    const metaCol = el("div", "draft-team-meta");
-    metaCol.appendChild(el("div", "draft-team-name", name));
-    metaCol.appendChild(el("div", "draft-team-key", shortTeamKey(teamKey)));
-    th.appendChild(metaCol);
+    const nameWrap = el("div", "draft-team-namewrap");
+    nameWrap.appendChild(el("div", "draft-team-name", t.name || teamKey));
+    nameWrap.appendChild(el("div", "draft-team-key", teamKey.replace(/^.*\.t\./, "T")));
+    top.appendChild(nameWrap);
 
+    th.appendChild(top);
     header.appendChild(th);
   }
 
   grid.appendChild(header);
 
-  // Body: rounds
+  // Body rows
   for (let r = 1; r <= meta.maxRound; r++) {
     const row = el("div", "draft-row");
+    row.style.setProperty("--cols", String(draftOrder.length + 1));
 
-    // Round label
     row.appendChild(el("div", "draft-round-cell", `R${r}`));
 
     const map = byRoundTeam.get(r) || new Map();
@@ -117,9 +111,9 @@ async function loadDraftBoard() {
       const cell = el("div", "draft-pick-cell");
 
       if (!pick) {
-        cell.appendChild(el("div", "draft-empty", "—"));
+        cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
-        const keeper = isKeeperPick(pick);
+        const keeper = isLikelyKeeperPick(pick);
 
         const top = el("div", "draft-pick-top");
         top.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
@@ -127,16 +121,17 @@ async function loadDraftBoard() {
         const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
         top.appendChild(el("div", "draft-pick-meta", metaText || (keeper ? "Keeper" : "")));
 
+        if (keeper) {
+          top.appendChild(el("div", "draft-keeper-badge", "KEEP"));
+        }
+
         cell.appendChild(top);
 
-        // Name line (fallback)
-        const displayName =
-          !pick.player_name || pick.player_name === pick.player_key ? shortTeamKey(pick.player_key || "") : pick.player_name;
+        const displayName = keeper ? "(Keeper/kept player)" : pick.player_name;
+        cell.appendChild(el("div", "draft-player-name", displayName));
 
-        cell.appendChild(el("div", "draft-player-name", displayName || "—"));
-
-        if (keeper) {
-          cell.appendChild(el("div", "draft-badge", "Keeper"));
+        if (!keeper && pick.player_name && pick.player_name === pick.player_key) {
+          cell.appendChild(el("div", "draft-player-sub", pick.player_key));
         }
       }
 
