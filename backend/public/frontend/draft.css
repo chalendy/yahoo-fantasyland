@@ -184,7 +184,7 @@ body {
 .draft-grid {
   display: grid;
   grid-auto-rows: auto;
-  gap: 6px;
+  gap: 2px;
   min-width: 100%;
 }
 
