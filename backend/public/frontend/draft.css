@@ -168,13 +168,13 @@ a {
 
 /* Round column thinner */
 :root {
-  --round-col: 22px; /* thinner than before */
+  --round-col: 15px; /* thinner than before */
   --cell-min: 120px; /* keeps it readable; tweak if you want */
 }
 
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 15px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 22px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
   position: sticky;
   top: 0;
