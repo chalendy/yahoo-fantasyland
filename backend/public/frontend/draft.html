@@ -4,16 +4,16 @@
   <meta charset="UTF-8" />
   <title>Draft Board · Fantasy Land 2025</title>
 
-  <!-- Shared app styles -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Main app theme -->
   <link rel="stylesheet" href="/style.css" />
 
-  <!-- Draft board specific styles -->
+  <!-- Draft board styles -->
   <link rel="stylesheet" href="/draft.css" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
-<body>
 
+<body>
   <div class="app-shell">
 
     <!-- Header -->
@@ -29,21 +29,16 @@
       </div>
     </header>
 
-    <!-- Main -->
+    <!-- Main content -->
     <main class="app-main">
 
-      <div class="controls-card">
-        <h2>Draft Board</h2>
-        <p class="hint">
-          Columns are the Round 1 draft order. Rows are rounds.
-        </p>
-        <p id="status" class="status-message"></p>
-      </div>
+      <!-- Status -->
+      <p id="status" class="status-message"></p>
 
-      <!-- IMPORTANT: no centering, no max-width here -->
-      <div class="draft-board-wrapper">
+      <!-- FULL-WIDTH draft board -->
+      <section class="draft-board-wrapper">
         <div id="draftBoard"></div>
-      </div>
+      </section>
 
     </main>
 
