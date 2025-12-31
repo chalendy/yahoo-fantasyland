@@ -53,7 +53,7 @@ function pickLeagueBlock(json) {
   return json?.fantasy_content?.league;
 }
 
-// Find the object inside league[] that contains a key (ex: "draft_results", "teams", "players")
+// Find the object inside league[] that contains a key (ex: "draft_results", "teams", "players", "transactions")
 function findLeagueChild(leagueArr, key) {
   if (!Array.isArray(leagueArr)) return null;
   for (const item of leagueArr) {
@@ -203,8 +203,8 @@ function extractKeeperSetFromRostersPayload(teamsNode) {
   return keeperSet;
 }
 
-// Build roster map: team_key -> [player_key, ...]
-function extractRostersByTeamKey(teamsNode) {
+// Extract roster map: team_key -> [player_key...]
+function extractRosterMapFromRostersPayload(teamsNode) {
   const rostersByTeamKey = {};
   if (!isObj(teamsNode)) return rostersByTeamKey;
 
@@ -213,6 +213,7 @@ function extractRostersByTeamKey(teamsNode) {
     const teamArr = teamWrap?.team;
     if (!Array.isArray(teamArr) || !Array.isArray(teamArr[0])) continue;
 
+    // team key is in teamArr[0] (array of objects)
     const core = teamArr[0];
     let team_key = null;
     for (const part of core) {
@@ -224,24 +225,71 @@ function extractRostersByTeamKey(teamsNode) {
     const playersNode = rosterObj?.[0]?.players;
     if (!isObj(playersNode)) continue;
 
-    const list = [];
+    const keys = [];
     for (const pidx of Object.keys(playersNode)) {
       const playerArr = playersNode[pidx]?.player;
       if (!Array.isArray(playerArr) || !Array.isArray(playerArr[0])) continue;
 
-      const coreP = playerArr[0];
-      for (const part of coreP) {
+      const pcore = playerArr[0];
+      for (const part of pcore) {
         if (isObj(part) && part.player_key) {
-          list.push(String(part.player_key));
+          keys.push(String(part.player_key));
           break;
         }
       }
     }
 
-    rostersByTeamKey[team_key] = list;
+    rostersByTeamKey[team_key] = keys;
   }
 
   return rostersByTeamKey;
+}
+
+// Transactions: build a set of player_keys that were ever dropped/traded
+function extractMovedPlayersFromTransactions(transactionsNode) {
+  const moved = new Set();
+  if (!isObj(transactionsNode)) return moved;
+
+  for (const idx of Object.keys(transactionsNode)) {
+    if (idx === "count") continue;
+
+    const txArr = transactionsNode[idx]?.transaction;
+    if (!Array.isArray(txArr) || !isObj(txArr[1])) continue;
+
+    const playersNode = txArr[1]?.players;
+    if (!isObj(playersNode)) continue;
+
+    for (const pidx of Object.keys(playersNode)) {
+      if (pidx === "count") continue;
+      const playerWrap = playersNode[pidx]?.player;
+      if (!Array.isArray(playerWrap) || !Array.isArray(playerWrap[0])) continue;
+
+      const core = playerWrap[0];
+      let player_key = null;
+
+      for (const part of core) {
+        if (isObj(part) && part.player_key) {
+          player_key = String(part.player_key);
+          break;
+        }
+      }
+      if (!player_key) continue;
+
+      // transaction_data can be object OR array
+      const txDataBlock = playerWrap[1]?.transaction_data;
+      const txDataList = Array.isArray(txDataBlock) ? txDataBlock : txDataBlock ? [txDataBlock] : [];
+
+      for (const td of txDataList) {
+        const type = String(td?.type || "").toLowerCase();
+        // League rule: must NOT be in drop or trade history
+        if (type === "drop" || type === "trade") {
+          moved.add(player_key);
+        }
+      }
+    }
+  }
+
+  return moved;
 }
 
 // Chunk player_keys to avoid huge URL issues
@@ -301,7 +349,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  SCOREBOARD (supports ?week=)
+//  (existing endpoints you already had)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
   if (!requireAuth(req, res)) return;
@@ -329,9 +377,6 @@ app.get("/scoreboard", async (req, res) => {
   }
 });
 
-// -----------------------------
-//  STANDINGS RAW
-// -----------------------------
 app.get("/standings-raw", async (req, res) => {
   if (!requireAuth(req, res)) return;
 
@@ -352,33 +397,6 @@ app.get("/standings-raw", async (req, res) => {
   }
 });
 
-// -----------------------------
-//  TRANSACTIONS RAW
-// -----------------------------
-app.get("/transactions", async (req, res) => {
-  if (!requireAuth(req, res)) return;
-
-  try {
-    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/transactions?format=json`;
-
-    const apiRes = await doFetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    const bodyText = await apiRes.text();
-    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
-
-    res.type("application/json").send(bodyText);
-  } catch (err) {
-    console.error("Standings fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch league standings" });
-  }
-});
-
-
-// -----------------------------
-//  SETTINGS RAW
-// -----------------------------
 app.get("/settings-raw", async (req, res) => {
   if (!requireAuth(req, res)) return;
 
@@ -399,9 +417,6 @@ app.get("/settings-raw", async (req, res) => {
   }
 });
 
-// -----------------------------
-//  DRAFT RESULTS RAW
-// -----------------------------
 app.get("/draftresults-raw", async (req, res) => {
   if (!requireAuth(req, res)) return;
 
@@ -422,9 +437,6 @@ app.get("/draftresults-raw", async (req, res) => {
   }
 });
 
-// -----------------------------
-//  ROSTERS RAW (supports ?week=)
-// -----------------------------
 app.get("/rosters-raw", async (req, res) => {
   if (!requireAuth(req, res)) return;
 
@@ -448,9 +460,34 @@ app.get("/rosters-raw", async (req, res) => {
   }
 });
 
+// NEW: transactions raw
+app.get("/transactions-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const start = req.query.start ? String(req.query.start) : "0";
+    const count = req.query.count ? String(req.query.count) : "25";
+
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/transactions;start=${encodeURIComponent(
+      start
+    )};count=${encodeURIComponent(count)}?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Transactions fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+});
+
 // -----------------------------
 //  PLAYERS RAW (optional helper)
-//  /players-raw?player_keys=461.p.123,461.p.456
 // -----------------------------
 app.get("/players-raw", async (req, res) => {
   if (!requireAuth(req, res)) return;
@@ -482,7 +519,8 @@ app.get("/players-raw", async (req, res) => {
 //  - team names/logos from week=1 rosters payload
 //  - player name/pos/team/headshot from players lookup using draft player_keys
 //  - keeper flag from week=1 roster's is_keeper.status === true
-//  - currentRostersByTeamKey from current week rosters (for eligibility toggle)
+//  - current rosters map (week=current_week) for eligibility checks
+//  - movedPlayers set from transactions (drop/trade)
 // -----------------------------
 app.get("/draftboard-data", async (req, res) => {
   if (!requireAuth(req, res)) return;
@@ -499,16 +537,18 @@ app.get("/draftboard-data", async (req, res) => {
     const draftResultsNode = findLeagueChild(leagueDraft, "draft_results");
     const picks = extractDraftPicks(draftResultsNode);
 
-    // 2) Week 1 rosters (team meta + keeper truth)
+    // 2) Week 1 rosters (team meta + keeper truth + also contains current_week we can read)
     const rosterWeek1Url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=1?format=json`;
-    const rosterWeek1Res = await doFetch(rosterWeek1Url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const rosterWeek1Text = await rosterWeek1Res.text();
-    if (!rosterWeek1Res.ok) return res.status(500).json({ error: "Yahoo API error (rosters week 1)", body: rosterWeek1Text });
-    const rosterWeek1Json = JSON.parse(rosterWeek1Text);
+    const rosterW1Res = await doFetch(rosterWeek1Url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const rosterW1Text = await rosterW1Res.text();
+    if (!rosterW1Res.ok) return res.status(500).json({ error: "Yahoo API error (rosters week 1)", body: rosterW1Text });
+    const rosterW1Json = JSON.parse(rosterW1Text);
 
-    const leagueRosterW1 = pickLeagueBlock(rosterWeek1Json);
+    const leagueRosterW1 = pickLeagueBlock(rosterW1Json);
+    const leagueMetaW1 = Array.isArray(leagueRosterW1) ? leagueRosterW1[0] : null;
+    const currentWeekFromLeague = Number(leagueMetaW1?.current_week || leagueMetaW1?.matchup_week || 0) || 1;
+
     const teamsNodeW1 = findLeagueChild(leagueRosterW1, "teams");
-
     const teamsByKey = extractTeamsMapFromTeamsPayload(teamsNodeW1);
     const keeperSet = extractKeeperSetFromRostersPayload(teamsNodeW1);
 
@@ -553,34 +593,52 @@ app.get("/draftboard-data", async (req, res) => {
       p.is_keeper = keeperSet.has(p.player_key);
     }
 
-    // 6) Current rosters by team (eligibility rule needs "still rostered")
-    // Try to find current_week from draftJson league meta; fallback to 17
-    const leagueMetaObj = Array.isArray(draftJson?.fantasy_content?.league) ? draftJson.fantasy_content.league[0] : null;
-    const currentWeek =
-      Number(leagueMetaObj?.current_week) ||
-      Number(leagueMetaObj?.matchup_week) ||
-      17;
-
+    // 6) Current rosters (use current week; allow override with ?week=)
+    const rosterWeek = req.query.week ? Number(req.query.week) : currentWeekFromLeague;
     const rosterCurrentUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
-      String(currentWeek)
+      String(rosterWeek)
     )}?format=json`;
 
-    const rosterCurrentRes = await doFetch(rosterCurrentUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const rosterCurrentText = await rosterCurrentRes.text();
+    const rosterCurRes = await doFetch(rosterCurrentUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const rosterCurText = await rosterCurRes.text();
+    if (!rosterCurRes.ok) return res.status(500).json({ error: "Yahoo API error (rosters current)", body: rosterCurText });
+    const rosterCurJson = JSON.parse(rosterCurText);
 
-    let currentRostersByTeamKey = {};
-    if (!rosterCurrentRes.ok) {
-      console.error("Current rosters fetch failed:", rosterCurrentRes.status, rosterCurrentText?.slice?.(0, 300));
-      // keep empty map; frontend will disable eligibility toggle
-      currentRostersByTeamKey = {};
-    } else {
-      const rosterCurrentJson = JSON.parse(rosterCurrentText);
-      const leagueRosterCur = pickLeagueBlock(rosterCurrentJson);
-      const teamsNodeCur = findLeagueChild(leagueRosterCur, "teams");
-      currentRostersByTeamKey = extractRostersByTeamKey(teamsNodeCur);
+    const leagueRosterCur = pickLeagueBlock(rosterCurJson);
+    const teamsNodeCur = findLeagueChild(leagueRosterCur, "teams");
+    const currentRostersByTeamKey = extractRosterMapFromRostersPayload(teamsNodeCur);
+
+    // 7) Transactions: page through to build movedPlayers set
+    const movedPlayers = new Set();
+    const PAGE = 25;
+    let start = 0;
+
+    while (start < 1000) {
+      const txUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/transactions;start=${start};count=${PAGE}?format=json`;
+      const txRes = await doFetch(txUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const txText = await txRes.text();
+      if (!txRes.ok) {
+        console.error("Transactions page failed:", txRes.status, txText?.slice?.(0, 200));
+        break; // don’t kill the whole board if transactions fail
+      }
+
+      const txJson = JSON.parse(txText);
+      const leagueTx = pickLeagueBlock(txJson);
+      const txNode = findLeagueChild(leagueTx, "transactions");
+
+      if (!txNode) break;
+
+      const count = Number(txNode?.count || 0);
+      const pageMoved = extractMovedPlayersFromTransactions(txNode);
+      for (const k of pageMoved) movedPlayers.add(k);
+
+      // no more results
+      if (!count || count < PAGE) break;
+
+      start += PAGE;
     }
 
-    // 7) Group into rounds
+    // 8) Group into rounds
     const maxRound = Math.max(...picks.map((p) => p.round));
     const rounds = [];
     for (let r = 1; r <= maxRound; r++) {
@@ -591,12 +649,12 @@ app.get("/draftboard-data", async (req, res) => {
     }
 
     res.json({
-      meta: { totalPicks: picks.length, maxRound },
+      meta: { totalPicks: picks.length, maxRound, rosterWeek },
       draftOrder,
       rounds,
-      teamsByKey,                 // name/logo source
-      currentWeek,                // handy for debugging
-      currentRostersByTeamKey,    // <-- NEW: for keeper-eligible toggle
+      teamsByKey,                 // names/logos
+      currentRostersByTeamKey,     // eligibility
+      movedPlayers: Array.from(movedPlayers), // dropped/traded list
     });
   } catch (err) {
     console.error("draftboard-data error:", err);
