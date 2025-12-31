@@ -174,7 +174,7 @@ a {
 
 .draft-grid-header {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), 1fr));
+  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
   position: sticky;
   top: 0;
@@ -235,7 +235,7 @@ a {
 
 .draft-row {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), 1fr));
+  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
 }
 
