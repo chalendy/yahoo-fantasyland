@@ -168,7 +168,7 @@ a {
 
 /* Round column thinner */
 :root {
-  --round-col: 34px; /* thinner than before */
+  --round-col: 15px; /* thinner than before */
   --cell-min: 120px; /* keeps it readable; tweak if you want */
 }
 
