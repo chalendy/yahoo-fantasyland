@@ -1,5 +1,5 @@
 /* =========================
-   Draft Page Theme (restore)
+   THEME (restore)
 ========================= */
 
 :root {
@@ -12,7 +12,6 @@
   --accent-strong: #ff8e3c;
   --text: #f5f5f7;
   --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
 }
@@ -27,19 +26,19 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
   color: var(--text);
 }
 
-/* If your draft page uses app-shell, DON'T trap it in a max-width */
+/* If your draft.html uses these wrappers, keep it full-width */
 .app-shell {
   min-height: 100vh;
   width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 24px 16px 32px;
+  max-width: none;         /* <-- full width */
+  margin: 0;               /* <-- no centering gap */
+  padding: 24px 16px 32px; /* keep breathing room */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -63,20 +62,6 @@ body {
   color: var(--text-muted);
 }
 
-.controls-card,
-.panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px 14px;
-  border: 1px solid var(--border-subtle);
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .btn {
   border-radius: 999px;
   border: none;
@@ -86,8 +71,19 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  white-space: nowrap;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #c34eff);
+  color: white;
+  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
 }
 
 .btn-secondary {
@@ -101,7 +97,7 @@ body {
 }
 
 .status-message {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 0.8rem;
   color: var(--accent-strong);
 }
@@ -113,10 +109,15 @@ body {
 .draft-board-wrapper {
   width: 100%;
   overflow-x: auto;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+  /* helps the board visually start at the left edge */
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-/* Grid container */
+/* Grid container (holds rows) */
 .draft-grid {
   display: grid;
   grid-auto-rows: auto;
@@ -128,19 +129,18 @@ body {
    Header Row
 ========================= */
 
+/* Make Rnd column thinner */
 .draft-grid-header {
   display: grid;
-  /* thinner Rnd column */
   grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
   position: sticky;
   top: 0;
   z-index: 5;
   background: var(--bg);
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 
-/* Round corner */
 .draft-corner {
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -148,7 +148,7 @@ body {
   align-self: end;
 }
 
-/* Team header */
+/* Team header cell */
 .draft-team-header {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -157,29 +157,27 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   text-align: center;
 }
 
-.draft-team-header img {
+/* Support either <img class="draft-team-logo"> OR plain <img> inside header */
+.draft-team-header img,
+.draft-team-logo {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 50%;
   object-fit: cover;
+  display: block; /* ensure it actually shows */
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.35);
 }
 
 .draft-team-name {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
-}
-
-.draft-team-sub {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  line-height: 1.1;
+  color: var(--text);
 }
 
 /* =========================
@@ -192,13 +190,11 @@ body {
   gap: 6px;
 }
 
-/* Round label */
 .draft-round-cell {
   font-size: 0.7rem;
   color: var(--accent-strong);
   text-align: center;
-  padding-top: 10px;
-  font-weight: 700;
+  padding-top: 8px;
 }
 
 /* =========================
@@ -206,67 +202,74 @@ body {
 ========================= */
 
 .draft-pick-cell {
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.14), transparent 55%),
-              var(--bg-elevated-soft);
+  background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 8px 9px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 56px;
+  gap: 4px;
+  min-height: 54px;
 }
 
 .draft-pick-empty {
   color: var(--text-muted);
   text-align: center;
   font-size: 0.75rem;
-  padding-top: 8px;
 }
 
 /* Pick meta row */
 .draft-pick-top {
   display: flex;
-  align-items: center;
-  gap: 8px; /* lets badge sit nicely beside pick # */
+  align-items: center;          /* keep badge aligned with # */
+  justify-content: space-between;
+  gap: 8px;
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
-/* Force the meta (pos/team) to the right side */
-.draft-pick-meta {
-  margin-left: auto;
-  white-space: nowrap;
-  opacity: 0.95;
+/* Left side of the top row (pick # + badge beside it) */
+.draft-pick-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                     /* badge beside pick number */
+  min-width: 0;
 }
 
-/* Pick number */
 .draft-pick-num {
-  font-weight: 800;
-  color: var(--text);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Right side meta (pos/team) */
+.draft-pick-meta {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
 }
 
 /* Player name */
 .draft-player-name {
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.15;
+  color: var(--text);
 }
 
-/* Keeper badge (BESIDE #) */
+/* Keeper badge */
 .draft-keeper-badge {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 142, 60, 0.35);
-  background: rgba(255, 142, 60, 0.12);
-  color: var(--accent-strong);
-  font-weight: 800;
   font-size: 0.62rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
-  line-height: 1;
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.12);
+  border: 1px solid rgba(255, 142, 60, 0.28);
 }
 
 /* =========================
