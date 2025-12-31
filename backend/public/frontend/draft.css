@@ -267,10 +267,10 @@ body {
   background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 8px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-height: 54px;
 }
 
