@@ -5,7 +5,7 @@ const reloadBtn = document.getElementById("reloadBtn");
 reloadBtn?.addEventListener("click", () => loadDraftBoard());
 
 function setStatus(msg) {
-  if (statusEl) statusEl.textContent = msg || "";
+  statusEl.textContent = msg || "";
 }
 
 function el(tag, className, text) {
@@ -15,10 +15,9 @@ function el(tag, className, text) {
   return n;
 }
 
-function shortTeamKey(teamKey) {
-  // "461.l.38076.t.7" -> "T7"
-  const m = String(teamKey || "").match(/\.t\.(\d+)$/);
-  return m ? `T${m[1]}` : String(teamKey || "");
+function teamShortKey(teamKey) {
+  const m = String(teamKey).match(/\.t\.(\d+)$/);
+  return m ? `T${m[1]}` : teamKey;
 }
 
 async function loadDraftBoard() {
@@ -27,7 +26,7 @@ async function loadDraftBoard() {
 
   let data;
   try {
-    const res = await fetch("/draftboard-data", { headers: { Accept: "application/json" } });
+    const res = await fetch("/draftboard-data");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch (e) {
@@ -36,68 +35,64 @@ async function loadDraftBoard() {
     return;
   }
 
-  const { draftOrder, rounds, meta, teams } = data || {};
-  if (!Array.isArray(draftOrder) || !draftOrder.length || !Array.isArray(rounds) || !rounds.length) {
+  const { draftOrder, rounds, meta, teamsByKey } = data;
+
+  if (!draftOrder?.length || !rounds?.length) {
     setStatus("Draft data looks empty.");
     return;
   }
-
-  const teamsByKey = teams || {};
 
   // Build lookup: round -> team_key -> pick info
   const byRoundTeam = new Map();
   for (const r of rounds) {
     const m = new Map();
-    for (const p of (r.picks || [])) m.set(p.team_key, p);
+    for (const p of r.picks) m.set(p.team_key, p);
     byRoundTeam.set(r.round, m);
   }
 
-  const colCount = draftOrder.length + 1; // +1 for "Rnd" column
-
-  // One single grid that includes the header cells + all round rows
+  // Grid wrapper
   const grid = el("div", "draft-grid");
-  grid.style.setProperty("--cols", String(colCount));
+  grid.style.setProperty("--cols", String(draftOrder.length + 1)); // +1 for round column
 
-  // -----------------------
-  // Header row (aligned)
-  // -----------------------
-  grid.appendChild(el("div", "draft-corner", "Rnd"));
+  // Header row
+  const header = el("div", "draft-grid-header");
+  header.style.setProperty("--cols", String(draftOrder.length + 1));
+  header.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
-    const info = teamsByKey[teamKey] || {};
-    const headerCell = el("div", "draft-team-header");
+    const t = teamsByKey?.[teamKey];
+    const th = el("div", "draft-team-header");
 
-    // logo (optional)
-    const logoUrl = info.logo_url || info.logo || info.team_logo || "";
-    if (logoUrl) {
-      const img = document.createElement("img");
-      img.className = "draft-team-logo";
-      img.src = logoUrl;
-      img.alt = info.name ? `${info.name} logo` : "Team logo";
-      img.loading = "lazy";
-      headerCell.appendChild(img);
+    const top = el("div", "draft-team-header-top");
+
+    const logo = el("img", "draft-team-logo");
+    if (t?.logo_url) {
+      logo.src = t.logo_url;
+      logo.alt = t?.name || teamShortKey(teamKey);
     } else {
-      // fallback placeholder keeps layout consistent
-      headerCell.appendChild(el("div", "draft-team-logo placeholder-logo", "🏈"));
+      logo.style.display = "none";
     }
 
-    // name + short key
-    const nameWrap = el("div", "draft-team-header-text");
-    nameWrap.appendChild(el("div", "draft-team-name", info.name || shortTeamKey(teamKey)));
-    nameWrap.appendChild(el("div", "draft-team-key", shortTeamKey(teamKey)));
-    headerCell.appendChild(nameWrap);
+    const nameWrap = el("div", "draft-team-namewrap");
+    nameWrap.appendChild(el("div", "draft-team-name", t?.name || teamShortKey(teamKey)));
+    if (t?.manager) nameWrap.appendChild(el("div", "draft-team-manager", t.manager));
 
-    grid.appendChild(headerCell);
+    top.appendChild(logo);
+    top.appendChild(nameWrap);
+    th.appendChild(top);
+
+    header.appendChild(th);
   }
 
-  // -----------------------
-  // Body: rounds
-  // -----------------------
-  const maxRound = Number(meta?.maxRound) || Math.max(...rounds.map(r => Number(r.round || 0)));
+  grid.appendChild(header);
 
-  for (let r = 1; r <= maxRound; r++) {
-    // Round label cell
-    grid.appendChild(el("div", "draft-round-cell", `R${r}`));
+  // Body: rounds
+  for (let r = 1; r <= meta.maxRound; r++) {
+    const row = el("div", "draft-row");
+    row.style.setProperty("--cols", String(draftOrder.length + 1));
+
+    // Round label
+    row.appendChild(el("div", "draft-round-cell", `R${r}`));
 
     const map = byRoundTeam.get(r) || new Map();
 
@@ -109,31 +104,31 @@ async function loadDraftBoard() {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
         const top = el("div", "draft-pick-top");
-
         top.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-        const metaTextParts = [];
-        if (pick.player_pos) metaTextParts.push(pick.player_pos);
-        if (pick.player_team) metaTextParts.push(pick.player_team);
+        const metaLine = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
+        top.appendChild(el("div", "draft-pick-meta", metaLine));
 
-        top.appendChild(el("div", "draft-pick-meta", metaTextParts.join(" · ")));
+        const nameLine = el("div", "draft-player-name", pick.player_name);
 
-        // Keeper badge only when explicitly flagged true
-        if (pick.isKeeper === true) {
-          top.appendChild(el("div", "draft-keeper-badge", "Keeper"));
-          cell.classList.add("is-keeper");
+        // keeper badge
+        if (pick.is_keeper) {
+          const badge = el("span", "draft-keeper-badge", "KEEPER");
+          nameLine.appendChild(badge);
         }
 
         cell.appendChild(top);
-        cell.appendChild(el("div", "draft-player-name", pick.player_name || pick.player_key || "Unknown"));
-
-        grid.appendChild(cell);
+        cell.appendChild(nameLine);
       }
+
+      row.appendChild(cell);
     }
+
+    grid.appendChild(row);
   }
 
   boardEl.appendChild(grid);
-  setStatus(`Loaded ${meta?.totalPicks ?? "?"} picks · ${maxRound} rounds`);
+  setStatus(`Loaded ${meta.totalPicks} picks · ${meta.maxRound} rounds`);
 }
 
 loadDraftBoard();
