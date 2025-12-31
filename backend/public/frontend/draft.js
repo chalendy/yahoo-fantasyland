@@ -15,23 +15,10 @@ function el(tag, className, text) {
   return n;
 }
 
-// Detect "unmapped" player: name is literally a yahoo player key string
-function isUnmappedPick(pick) {
-  if (!pick) return false;
-
-  // The main signal you showed: player_name becomes the player_key string
-  if (pick.player_name && pick.player_key && pick.player_name === pick.player_key) return true;
-
-  // Also catch cases where player_name itself looks like a key
-  if (typeof pick.player_name === "string" && /^461\.p\.\d+$/.test(pick.player_name.trim())) return true;
-
-  // Optional extra fallback: if all the display fields are empty, treat as unmapped
-  const nameMissing = !pick.player_name || pick.player_name.trim() === "";
-  const posMissing = !pick.player_pos || pick.player_pos.trim() === "";
-  const teamMissing = !pick.player_team || pick.player_team.trim() === "";
-  if (nameMissing && posMissing && teamMissing) return true;
-
-  return false;
+function shortTeamKey(teamKey) {
+  // 461.l.38076.t.7 -> T7
+  const m = String(teamKey).match(/\.t\.(\d+)$/);
+  return m ? `T${m[1]}` : teamKey;
 }
 
 async function loadDraftBoard() {
@@ -40,7 +27,7 @@ async function loadDraftBoard() {
 
   let data;
   try {
-    const res = await fetch("/draftboard-data", { cache: "no-store" });
+    const res = await fetch("/draftboard-data", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch (e) {
@@ -49,8 +36,7 @@ async function loadDraftBoard() {
     return;
   }
 
-  const { draftOrder, rounds, meta, teamsByKey } = data;
-
+  const { draftOrder, rounds, meta, teams } = data;
   if (!draftOrder?.length || !rounds?.length) {
     setStatus("Draft data looks empty.");
     return;
@@ -64,46 +50,43 @@ async function loadDraftBoard() {
     byRoundTeam.set(r.round, m);
   }
 
+  // Single aligned grid (includes header row)
+  const cols = draftOrder.length + 1; // +1 for the round label column
   const grid = el("div", "draft-grid");
-  grid.style.setProperty("--cols", String(draftOrder.length + 1)); // +1 for round column
+  grid.style.setProperty("--cols", String(cols));
 
-  // Header row
-  const header = el("div", "draft-grid-header");
-  header.style.setProperty("--cols", String(draftOrder.length + 1));
-
-  header.appendChild(el("div", "draft-corner", "Rnd"));
+  // ---- Header row ----
+  grid.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
-    const team = teamsByKey?.[teamKey] || {};
+    const metaTeam = teams?.[teamKey];
     const th = el("div", "draft-team-header");
 
-    const top = el("div", "draft-team-header-top");
-
-    if (team.logo) {
+    // logo
+    const logoUrl = metaTeam?.logo_url || "";
+    if (logoUrl) {
       const img = document.createElement("img");
-      img.src = team.logo;
-      img.alt = team.name || teamKey;
       img.className = "draft-team-logo";
-      top.appendChild(img);
+      img.src = logoUrl;
+      img.alt = metaTeam?.name || shortTeamKey(teamKey);
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      th.appendChild(img);
+    } else {
+      th.appendChild(el("div", "draft-team-logo placeholder-logo", "🏈"));
     }
 
-    const nameWrap = el("div", "draft-team-name-wrap");
-    nameWrap.appendChild(el("div", "draft-team-name", team.name || teamKey));
-    nameWrap.appendChild(el("div", "draft-team-key", teamKey.replace(/^.*\.t\./, "T")));
-    top.appendChild(nameWrap);
+    // name
+    th.appendChild(el("div", "draft-team-name", metaTeam?.name || shortTeamKey(teamKey)));
+    th.appendChild(el("div", "draft-team-key", shortTeamKey(teamKey)));
 
-    th.appendChild(top);
-    header.appendChild(th);
+    grid.appendChild(th);
   }
 
-  grid.appendChild(header);
-
-  // Body rows (rounds)
+  // ---- Body (rounds) ----
   for (let r = 1; r <= meta.maxRound; r++) {
-    const row = el("div", "draft-row");
-    row.style.setProperty("--cols", String(draftOrder.length + 1));
-
-    row.appendChild(el("div", "draft-round-cell", `R${r}`));
+    // round label
+    grid.appendChild(el("div", "draft-round-cell", `R${r}`));
 
     const map = byRoundTeam.get(r) || new Map();
 
@@ -114,31 +97,32 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
-        const keeper = isUnmappedPick(pick);
-
         const top = el("div", "draft-pick-top");
+
         top.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-        const metaText = keeper
-          ? "Keeper"
-          : `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
+        const metaTxt =
+          `${pick.player_pos || ""}${pick.player_team ? (pick.player_pos ? " · " : "") + pick.player_team : ""}`.trim();
 
-        const metaEl = el("div", "draft-pick-meta", metaText);
-        if (keeper) metaEl.classList.add("draft-keeper-tag");
-        top.appendChild(metaEl);
+        top.appendChild(el("div", "draft-pick-meta", metaTxt || "\u00A0"));
 
         cell.appendChild(top);
 
-        const displayName = keeper ? "(Kept player)" : (pick.player_name || "");
-        const nameEl = el("div", "draft-player-name", displayName);
-        if (keeper) nameEl.classList.add("draft-keeper-name");
-        cell.appendChild(nameEl);
+        const nameLine = el("div", "draft-player-name");
+        nameLine.textContent = pick.player_name || "";
+
+        // Your rule: if unmapped => is_kept true
+        if (pick.is_kept) {
+          const badge = el("span", "draft-kept-badge", "Kept");
+          nameLine.appendChild(document.createTextNode(" "));
+          nameLine.appendChild(badge);
+        }
+
+        cell.appendChild(nameLine);
       }
 
-      row.appendChild(cell);
+      grid.appendChild(cell);
     }
-
-    grid.appendChild(row);
   }
 
   boardEl.appendChild(grid);
