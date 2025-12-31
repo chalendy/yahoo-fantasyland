@@ -34,6 +34,14 @@ async function doFetch(url, options = {}) {
   return mod.default(url, options);
 }
 
+function requireAuth(req, res) {
+  if (!accessToken) {
+    res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+    return false;
+  }
+  return true;
+}
+
 // -----------------------------
 //  Helpers to safely walk Yahoo's weird arrays
 // -----------------------------
@@ -104,14 +112,12 @@ function extractDraftPicks(draftResultsNode) {
       round: Number(dr.round),
       team_key: dr.team_key,
       player_key: dr.player_key,
-      // these will be enriched later
+      // enriched later
       player_name: dr.player_key,
       player_pos: "",
       player_team: "",
       player_headshot: null,
-
-      // will be added later
-      is_keeper_eligible: false,
+      is_keeper: false,
     });
   }
 
@@ -144,6 +150,7 @@ function extractPlayersMapFromPlayersPayload(playersNode) {
       if (part.display_position) pos = part.display_position;
       if (part.editorial_team_abbr) team = part.editorial_team_abbr;
 
+      // headshot: { url } OR image_url
       if (part.headshot?.url) headshot = part.headshot.url;
       if (!headshot && part.image_url) headshot = part.image_url;
     }
@@ -161,47 +168,39 @@ function extractPlayersMapFromPlayersPayload(playersNode) {
   return map;
 }
 
-// From a teams payload (teams->team[1].roster), build map team_key -> Set(player_key)
-function extractRosterKeysByTeam(teamsNode) {
-  const byTeam = {};
-  if (!isObj(teamsNode)) return byTeam;
+// Build keeper set from rosters payload (week 1)
+function extractKeeperSetFromRostersPayload(teamsNode) {
+  const keeperSet = new Set();
+  if (!isObj(teamsNode)) return keeperSet;
 
   for (const idx of Object.keys(teamsNode)) {
     const teamWrap = teamsNode[idx];
     const teamArr = teamWrap?.team;
-    if (!Array.isArray(teamArr) || !Array.isArray(teamArr[0])) continue;
+    if (!Array.isArray(teamArr)) continue;
 
-    const core = teamArr[0];
-    const rosterObj = teamArr[1]?.roster;
-
-    let team_key = null;
-    for (const part of core) {
-      if (isObj(part) && part.team_key) team_key = part.team_key;
-    }
-    if (!team_key) continue;
-
-    const set = new Set();
-
-    // rosterObj is an object with numeric key "0": { players: { ... } }
+    const rosterObj = teamArr?.[1]?.roster;
     const playersNode = rosterObj?.[0]?.players;
-    if (isObj(playersNode)) {
-      for (const pk of Object.keys(playersNode)) {
-        const playerArr = playersNode[pk]?.player;
-        if (!Array.isArray(playerArr) || !Array.isArray(playerArr[0])) continue;
+    if (!isObj(playersNode)) continue;
 
-        const fields = playerArr[0];
-        let player_key = null;
-        for (const part of fields) {
-          if (isObj(part) && part.player_key) player_key = part.player_key;
-        }
-        if (player_key) set.add(player_key);
+    for (const pidx of Object.keys(playersNode)) {
+      const playerArr = playersNode[pidx]?.player;
+      if (!Array.isArray(playerArr) || !Array.isArray(playerArr[0])) continue;
+
+      const core = playerArr[0];
+      let player_key = null;
+      let is_keeper = false;
+
+      for (const part of core) {
+        if (!isObj(part)) continue;
+        if (part.player_key) player_key = part.player_key;
+        if (part.is_keeper?.status === true) is_keeper = true;
       }
-    }
 
-    byTeam[team_key] = set;
+      if (player_key && is_keeper) keeperSet.add(player_key);
+    }
   }
 
-  return byTeam;
+  return keeperSet;
 }
 
 // Chunk player_keys to avoid huge URL issues
@@ -228,7 +227,6 @@ app.get("/auth/start", (req, res) => {
 // -----------------------------
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
-
   if (!code) return res.status(400).send("Missing authorization code.");
 
   try {
@@ -262,62 +260,197 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // -----------------------------
-//  Draft Board data (draft results + team meta + player headshots + keeper eligibility)
+//  SCOREBOARD (supports ?week=)
+// -----------------------------
+app.get("/scoreboard", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const week = req.query.week ? String(req.query.week) : null;
+    const url =
+      week && week.trim()
+        ? `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard;week=${encodeURIComponent(
+            week
+          )}?format=json`
+        : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Scoreboard error:", err);
+    res.status(500).json({ error: "Failed to fetch scoreboard" });
+  }
+});
+
+// -----------------------------
+//  STANDINGS RAW
+// -----------------------------
+app.get("/standings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Standings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league standings" });
+  }
+});
+
+// -----------------------------
+//  SETTINGS RAW
+// -----------------------------
+app.get("/settings-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Settings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league settings" });
+  }
+});
+
+// -----------------------------
+//  DRAFT RESULTS RAW
+// -----------------------------
+app.get("/draftresults-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Draftresults fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch draft results" });
+  }
+});
+
+// -----------------------------
+//  ROSTERS RAW (supports ?week=)
+// -----------------------------
+app.get("/rosters-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const week = req.query.week ? String(req.query.week) : "1";
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
+      week
+    )}?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Rosters fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch rosters" });
+  }
+});
+
+// -----------------------------
+//  PLAYERS RAW (optional helper)
+//  /players-raw?player_keys=461.p.123,461.p.456
+// -----------------------------
+app.get("/players-raw", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const keys = req.query.player_keys ? String(req.query.player_keys) : "";
+    if (!keys.trim()) return res.status(400).json({ error: "Missing player_keys" });
+
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/players;player_keys=${encodeURIComponent(
+      keys
+    )}?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Players fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch players" });
+  }
+});
+
+// -----------------------------
+//  DRAFTBOARD DATA (merged + enriched)
+//  - team names/logos from week=1 rosters payload
+//  - player name/pos/team/headshot from players lookup using draft player_keys
+//  - keeper flag from week=1 roster's is_keeper.status === true
 // -----------------------------
 app.get("/draftboard-data", async (req, res) => {
-  if (!accessToken) {
-    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
-  }
+  if (!requireAuth(req, res)) return;
 
   try {
     // 1) Draft results
     const draftUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
     const draftRes = await doFetch(draftUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
     const draftText = await draftRes.text();
-    if (!draftRes.ok) return res.status(500).json({ error: "Yahoo API error", body: draftText });
+    if (!draftRes.ok) return res.status(500).json({ error: "Yahoo API error (draftresults)", body: draftText });
     const draftJson = JSON.parse(draftText);
 
     const leagueDraft = pickLeagueBlock(draftJson);
     const draftResultsNode = findLeagueChild(leagueDraft, "draft_results");
     const picks = extractDraftPicks(draftResultsNode);
 
-    // 2) Teams + roster (week=1) to get team names/logos (and also current_week from meta)
-    const rosterWeek1Url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=1?format=json`;
-    const rosterWeek1Res = await doFetch(rosterWeek1Url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const rosterWeek1Text = await rosterWeek1Res.text();
-    if (!rosterWeek1Res.ok) return res.status(500).json({ error: "Yahoo API error", body: rosterWeek1Text });
-    const rosterWeek1Json = JSON.parse(rosterWeek1Text);
+    // 2) Week 1 rosters (team meta + keeper truth)
+    const rosterUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=1?format=json`;
+    const rosterRes = await doFetch(rosterUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const rosterText = await rosterRes.text();
+    if (!rosterRes.ok) return res.status(500).json({ error: "Yahoo API error (rosters)", body: rosterText });
+    const rosterJson = JSON.parse(rosterText);
 
-    const leagueRosterW1 = pickLeagueBlock(rosterWeek1Json);
-    const teamsNodeW1 = findLeagueChild(leagueRosterW1, "teams");
-    const teamsByKey = extractTeamsMapFromTeamsPayload(teamsNodeW1);
+    const leagueRoster = pickLeagueBlock(rosterJson);
+    const teamsNode = findLeagueChild(leagueRoster, "teams");
 
-    // current_week from meta (in league[0])
-    const meta0 = Array.isArray(rosterWeek1Json?.fantasy_content?.league)
-      ? rosterWeek1Json.fantasy_content.league[0]
-      : null;
-    const currentWeek = Number(meta0?.current_week) || 1;
+    const teamsByKey = extractTeamsMapFromTeamsPayload(teamsNode);
+    const keeperSet = extractKeeperSetFromRostersPayload(teamsNode);
 
-    // 3) Current rosters (week=currentWeek) for "hasn't been dropped"
-    const rosterCurrentUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster;week=${encodeURIComponent(
-      String(currentWeek)
-    )}?format=json`;
-    const rosterCurrentRes = await doFetch(rosterCurrentUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const rosterCurrentText = await rosterCurrentRes.text();
-    if (!rosterCurrentRes.ok) {
-      // If this fails for some reason, we still return the board (eligibility will just be false)
-      console.error("Current roster fetch failed:", rosterCurrentRes.status, rosterCurrentText?.slice?.(0, 250));
-    }
-    const rosterCurrentJson = rosterCurrentRes.ok ? JSON.parse(rosterCurrentText) : null;
-    const leagueRosterCur = rosterCurrentJson ? pickLeagueBlock(rosterCurrentJson) : null;
-    const teamsNodeCur = leagueRosterCur ? findLeagueChild(leagueRosterCur, "teams") : null;
-    const rosterKeysByTeam = teamsNodeCur ? extractRosterKeysByTeam(teamsNodeCur) : {};
-
-    // 4) Draft order = Round 1 order
+    // 3) Draft order = Round 1 order
     const round1 = picks.filter((p) => p.round === 1).sort((a, b) => a.pick - b.pick);
     const draftOrder = round1.map((p) => p.team_key);
 
-    // 5) Enrich ALL draft player_keys with chunked players call
+    // 4) Enrich ALL draft player_keys via players endpoint in chunks
     const allPlayerKeys = Array.from(new Set(picks.map((p) => p.player_key))).filter(Boolean);
 
     const playersMap = {};
@@ -330,7 +463,7 @@ app.get("/draftboard-data", async (req, res) => {
       const pRes = await doFetch(playersUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
       const pText = await pRes.text();
       if (!pRes.ok) {
-        console.error("Players lookup failed:", pRes.status, pText?.slice?.(0, 200));
+        console.error("Players lookup failed:", pRes.status, pText?.slice?.(0, 300));
         continue;
       }
 
@@ -342,7 +475,7 @@ app.get("/draftboard-data", async (req, res) => {
       Object.assign(playersMap, chunkMap);
     }
 
-    // 6) Attach player info + keeper eligibility
+    // 5) Attach player info + keeper flag
     for (const p of picks) {
       const info = playersMap[p.player_key];
       if (info) {
@@ -351,15 +484,10 @@ app.get("/draftboard-data", async (req, res) => {
         p.player_team = info.player_team || "";
         p.player_headshot = info.player_headshot || null;
       }
-
-      // Keeper eligibility rule:
-      // - drafted round 6 or later
-      // - still on that team's roster (current week roster)
-      const onTeamNow = rosterKeysByTeam?.[p.team_key]?.has?.(p.player_key) === true;
-      p.is_keeper_eligible = p.round >= 6 && onTeamNow;
+      p.is_keeper = keeperSet.has(p.player_key);
     }
 
-    // 7) Group into rounds
+    // 6) Group into rounds
     const maxRound = Math.max(...picks.map((p) => p.round));
     const rounds = [];
     for (let r = 1; r <= maxRound; r++) {
@@ -370,16 +498,10 @@ app.get("/draftboard-data", async (req, res) => {
     }
 
     res.json({
-      meta: {
-        totalPicks: picks.length,
-        maxRound,
-        currentWeek,
-      },
+      meta: { totalPicks: picks.length, maxRound },
       draftOrder,
       rounds,
-      teamsByKey,
-      // optional debug/feature support
-      // currentRosterByTeam: Object.fromEntries(Object.entries(rosterKeysByTeam).map(([k, set]) => [k, Array.from(set)])),
+      teamsByKey, // front-end reads this for name/logo
     });
   } catch (err) {
     console.error("draftboard-data error:", err);
