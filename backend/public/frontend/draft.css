@@ -1,5 +1,5 @@
 /* =========================
-   Draft Page Theme (restore)
+   Draft Board Theme + Layout
 ========================= */
 
 :root {
@@ -12,17 +12,11 @@
   --accent-strong: #ff8e3c;
   --text: #f5f5f7;
   --text-muted: #a1a5c1;
-  --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
+/* Page background + text */
 html,
 body {
   margin: 0;
@@ -33,77 +27,12 @@ body {
   color: var(--text);
 }
 
-/* If your draft page uses app-shell, DON'T trap it in a max-width */
-.app-shell {
-  min-height: 100vh;
+/* If your draft page uses a wrapper, keep it full width */
+.draft-page,
+.app-shell,
+main {
   width: 100%;
   max-width: none;
-  margin: 0;
-  padding: 24px 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.controls-card,
-.panel {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px 14px;
-  border: 1px solid var(--border-subtle);
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.btn {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-}
-
-.btn-secondary {
-  background: var(--bg-elevated-soft);
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background: #1e2236;
-}
-
-.status-message {
-  margin: 8px 0 0;
-  font-size: 0.8rem;
-  color: var(--accent-strong);
 }
 
 /* =========================
@@ -112,8 +41,8 @@ body {
 
 .draft-board-wrapper {
   width: 100%;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  overflow-x: auto; /* keep scrollbar */
+  padding: 0 12px 8px; /* small breathing room */
 }
 
 /* Grid container */
@@ -131,13 +60,16 @@ body {
 .draft-grid-header {
   display: grid;
   /* thinner Rnd column */
-  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
+
   position: sticky;
   top: 0;
   z-index: 5;
+
   background: var(--bg);
-  padding-bottom: 6px;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Round corner */
@@ -154,32 +86,34 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 6px 6px 8px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
   text-align: center;
 }
 
 .draft-team-header img {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.35);
+  display: block;
 }
 
 .draft-team-name {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 650;
   line-height: 1.1;
-}
-
-.draft-team-sub {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  line-height: 1.1;
+  color: var(--text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* =========================
@@ -188,7 +122,7 @@ body {
 
 .draft-row {
   display: grid;
-  grid-template-columns: 28px repeat(var(--cols), minmax(130px, 1fr));
+  grid-template-columns: 32px repeat(var(--cols), minmax(130px, 1fr));
   gap: 6px;
 }
 
@@ -197,8 +131,7 @@ body {
   font-size: 0.7rem;
   color: var(--accent-strong);
   text-align: center;
-  padding-top: 10px;
-  font-weight: 700;
+  padding-top: 8px;
 }
 
 /* =========================
@@ -206,67 +139,89 @@ body {
 ========================= */
 
 .draft-pick-cell {
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.14), transparent 55%),
-              var(--bg-elevated-soft);
+  background: var(--bg-elevated-soft);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 8px 9px;
+  padding: 7px 8px;
+
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 56px;
+
+  min-height: 58px;
 }
 
+/* Empty cell */
 .draft-pick-empty {
   color: var(--text-muted);
   text-align: center;
   font-size: 0.75rem;
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
-/* Pick meta row */
+/* Pick meta row (TOP) */
 .draft-pick-top {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px; /* lets badge sit nicely beside pick # */
+  gap: 8px;
+
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
-/* Force the meta (pos/team) to the right side */
-.draft-pick-meta {
-  margin-left: auto;
-  white-space: nowrap;
-  opacity: 0.95;
+/* Left side inside top row (# + badge) */
+.draft-pick-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-/* Pick number */
 .draft-pick-num {
-  font-weight: 800;
-  color: var(--text);
+  color: var(--text-muted);
+  font-weight: 650;
+}
+
+/* Keeper badge — sits BESIDE pick number */
+.draft-keeper-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.12);
+  border: 1px solid rgba(255, 142, 60, 0.28);
+  white-space: nowrap;
+}
+
+/* Right side meta (pos · team) */
+.draft-pick-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.15;
+  color: var(--text);
 }
 
-/* Keeper badge (BESIDE #) */
-.draft-keeper-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 142, 60, 0.35);
-  background: rgba(255, 142, 60, 0.12);
-  color: var(--accent-strong);
-  font-weight: 800;
-  font-size: 0.62rem;
-  letter-spacing: 0.02em;
-  line-height: 1;
+/* Optional: subtle hover */
+.draft-pick-cell:hover {
+  border-color: rgba(127, 90, 240, 0.28);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
 /* =========================
@@ -276,21 +231,21 @@ body {
 @media (max-width: 900px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 24px repeat(var(--cols), minmax(120px, 1fr));
+    grid-template-columns: 28px repeat(var(--cols), minmax(120px, 1fr));
+  }
+
+  .draft-team-name {
+    font-size: 0.68rem;
   }
 }
 
 @media (max-width: 600px) {
   .draft-grid-header,
   .draft-row {
-    grid-template-columns: 22px repeat(var(--cols), minmax(110px, 1fr));
-  }
-
-  .draft-team-name {
-    font-size: 0.65rem;
+    grid-template-columns: 26px repeat(var(--cols), minmax(110px, 1fr));
   }
 
   .draft-player-name {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
   }
 }
