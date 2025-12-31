@@ -53,9 +53,22 @@ body {
 
 .app-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* ⬅️ THIS prevents centering */
   align-items: center;
   gap: 16px;
+}
+
+/* Left side (title) */
+.header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Right side buttons */
+.header-actions {
+  display: flex;
+  gap: 12px;        /* spacing between buttons */
+  align-items: center;
 }
 
 .app-header h1 {
