@@ -53,7 +53,6 @@ function getCurrentRostersMap(data) {
 }
 
 function normalizeRosterMap(rostersMap) {
-  // Ensure team_key -> Set(player_key)
   if (!rostersMap || typeof rostersMap !== "object") return null;
 
   const out = {};
@@ -73,7 +72,33 @@ function getMovedPlayersSet(data) {
 }
 
 // -------------------------
-// Toggle UI (own line under header)
+// Position class helpers
+// -------------------------
+function normalizePos(pos) {
+  const p = String(pos || "").toUpperCase().trim();
+  // Yahoo sometimes uses DEF, sometimes D/ST. We'll treat both as DEF.
+  if (p === "D/ST") return "DEF";
+  return p;
+}
+
+function posClass(pos) {
+  const p = normalizePos(pos);
+  if (!p) return "pos-unk";
+
+  // common positions
+  if (p === "QB") return "pos-qb";
+  if (p === "RB") return "pos-rb";
+  if (p === "WR") return "pos-wr";
+  if (p === "TE") return "pos-te";
+  if (p === "K") return "pos-k";
+  if (p === "DEF") return "pos-def";
+
+  // anything else (IDP etc.)
+  return "pos-other";
+}
+
+// -------------------------
+// Toggle UI
 // -------------------------
 let keeperToggleState = {
   enabled: false,
@@ -81,9 +106,14 @@ let keeperToggleState = {
 };
 
 function ensureToggleUI() {
+  const host =
+    document.querySelector(".button-row") ||
+    document.querySelector(".controls-card") ||
+    document.querySelector(".app-header") ||
+    document.body;
+
   if (document.getElementById("keeperEligibleToggle")) return;
 
-  // Create the label/button
   const wrap = el("label", "btn btn-secondary");
   wrap.style.display = "inline-flex";
   wrap.style.alignItems = "center";
@@ -99,9 +129,8 @@ function ensureToggleUI() {
   const txt = el(
     "span",
     "",
-    "Show keeper-eligible (Rd 6+, never dropped/traded)"
+    "Show keeper-eligible (Rd 6+, no drop/trade)"
   );
-
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -110,28 +139,11 @@ function ensureToggleUI() {
     if (window.__draftDataCache) renderBoard(window.__draftDataCache);
   });
 
-  // Put it on its own line under the header (preferred)
-  const header = document.querySelector(".app-header");
-  const appShell = document.querySelector(".app-shell") || document.body;
-
-  let row = document.querySelector(".draft-toggle-row");
-  if (!row) {
-    row = el("div", "draft-toggle-row");
-    row.style.display = "flex";
-    row.style.flexWrap = "wrap";
-    row.style.gap = "10px";
-    row.style.alignItems = "center";
-
-    if (header && header.parentNode) {
-      header.insertAdjacentElement("afterend", row);
-    } else if (boardEl?.parentNode) {
-      boardEl.parentNode.insertBefore(row, boardEl);
-    } else {
-      appShell.appendChild(row);
-    }
+  if (host.classList?.contains("button-row")) {
+    host.appendChild(wrap);
+  } else {
+    boardEl?.parentNode?.insertBefore(wrap, boardEl);
   }
-
-  row.appendChild(wrap);
 }
 
 function setToggleReady(isReady) {
@@ -140,9 +152,7 @@ function setToggleReady(isReady) {
   if (!cb) return;
 
   cb.disabled = !isReady;
-  cb.title = isReady
-    ? ""
-    : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
+  cb.title = isReady ? "" : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
 }
 
 // -------------------------
@@ -200,7 +210,6 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -237,7 +246,6 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
-  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
@@ -259,6 +267,9 @@ function renderBoard(data) {
         row.appendChild(cell);
         continue;
       }
+
+      // ✅ ADD POSITION CLASS FOR COLOR CODING
+      cell.classList.add(posClass(pick.player_pos));
 
       // Eligible if:
       // - drafted round >= 6
