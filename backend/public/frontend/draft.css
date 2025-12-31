@@ -86,7 +86,11 @@ body {
   padding: 0;
   height: 100%;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* keep your existing gradient/background here */
   background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
+  background-attachment: fixed;   /* key: prevents the “restart” */
+  background-repeat: no-repeat;
+  background-size: cover;
   color: var(--text);
 }
 
