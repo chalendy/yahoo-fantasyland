@@ -663,6 +663,15 @@ app.get("/draftboard-data", async (req, res) => {
 });
 
 // -----------------------------
+//  AUTH STATUS (for UI)
+// -----------------------------
+app.get("/auth-status", (req, res) => {
+  res.json({
+    authenticated: !!accessToken,
+  });
+});
+
+// -----------------------------
 //  FRONTEND STATIC FILES
 // -----------------------------
 const frontendPath = path.join(__dirname, "backend", "public", "frontend");
