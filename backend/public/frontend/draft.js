@@ -27,6 +27,7 @@ function getTeamMeta(data, teamKey) {
     data?.teamMeta,
     data?.teamMap,
     data?.teamsByKeyMap,
+    data?.teamsByKey, // common
   ];
   for (const src of sources) {
     if (src && typeof src === "object" && src[teamKey]) return src[teamKey];
@@ -127,9 +128,36 @@ function setToggleReady(isReady) {
   if (!cb) return;
 
   cb.disabled = !isReady;
-  cb.title = isReady
-    ? ""
-    : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
+  cb.title = isReady ? "" : "Eligibility needs current rosters + movedPlayers in /draftboard-data.";
+}
+
+// -------------------------
+// Badge helper (prevents shifting/overlap)
+// -------------------------
+function appendSingleBadgeSlot(leftEl, { showKeeper, showEligible }) {
+  // Only ONE badge can show at a time:
+  // - Keeper ALWAYS wins
+  // - Eligible only shows if not keeper
+  const badge = document.createElement("span");
+  badge.className = "draft-keeper-badge";
+
+  if (showKeeper) {
+    badge.textContent = "Keeper";
+    badge.style.visibility = "visible";
+    badge.style.display = "inline-flex";
+  } else if (showEligible) {
+    badge.textContent = "Eligible";
+    badge.style.visibility = "visible";
+    badge.style.display = "inline-flex";
+  } else {
+    // placeholder to reserve space (prevents text shifting)
+    badge.textContent = "Eligible";
+    badge.style.visibility = "hidden";
+    badge.style.display = "inline-flex";
+    badge.setAttribute("aria-hidden", "true");
+  }
+
+  leftEl.appendChild(badge);
 }
 
 // -------------------------
@@ -174,6 +202,7 @@ function renderBoard(data) {
     return;
   }
 
+  // round -> team_key -> pick
   const byRoundTeam = new Map();
   for (const r of rounds) {
     const m = new Map();
@@ -187,7 +216,7 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header
+  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -224,7 +253,7 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
-  // Body
+  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
@@ -259,7 +288,6 @@ function renderBoard(data) {
         const playerKey = String(pick.player_key || "");
         const neverMoved = !movedSet.has(playerKey);
 
-        // IMPORTANT: keepers are NOT eligible to be kept again
         isEligible =
           roundNum >= 6 &&
           !!roster?.has(playerKey) &&
@@ -282,18 +310,16 @@ function renderBoard(data) {
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // Reserve badge slots so NOTHING shifts.
-      // Use visibility (not display) to keep layout stable.
-      const keeperBadge = el("span", "draft-keeper-badge", "Keeper");
-      keeperBadge.style.visibility = pick.is_keeper ? "visible" : "hidden";
+      // IMPORTANT:
+      // - Keeper + Eligible never show together
+      // - When toggle is off, we still reserve one badge slot (hidden) so rows don't shift
+      const showKeeper = !!pick.is_keeper;
+      const showEligible = keeperToggleState.enabled && canComputeEligibility && isEligible && !pick.is_keeper;
 
-      const eligibleBadge = el("span", "draft-keeper-badge", "Eligible");
-      const showEligible =
-        keeperToggleState.enabled && canComputeEligibility && isEligible && !pick.is_keeper;
-      eligibleBadge.style.visibility = showEligible ? "visible" : "hidden";
-
-      left.appendChild(keeperBadge);
-      left.appendChild(eligibleBadge);
+      appendSingleBadgeSlot(left, {
+        showKeeper,
+        showEligible,
+      });
 
       const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
       const right = el("div", "draft-pick-meta", metaText);
@@ -301,7 +327,7 @@ function renderBoard(data) {
       top.appendChild(left);
       top.appendChild(right);
 
-      // Player row (portrait + name)
+      // Player row
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
@@ -338,7 +364,7 @@ function renderBoard(data) {
 
   if (keeperToggleState.enabled) {
     if (!canComputeEligibility) {
-      setStatus("Toggle needs current rosters + movedPlayers included in /draftboard-data to calculate eligibility.");
+      setStatus("Toggle needs current rosters + movedPlayers in /draftboard-data to calculate eligibility.");
     } else {
       setStatus(`Showing keeper eligibility · ${total || "?"} picks · ${maxRound} rounds`);
     }
