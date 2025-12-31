@@ -315,3 +315,36 @@ a {
     font-size: 0.75rem;
   }
 }
+
+/* === Fix: board starts at left + uses full available width === */
+
+/* Make sure the wrapper isn't being centered by any parent styles */
+.draft-board-wrapper {
+  width: 100%;
+  overflow-x: auto;           /* keep scrollbar */
+  padding-bottom: 8px;
+  margin: 0;                  /* kill centering */
+  display: block;
+}
+
+/* Force the grid to align to the left edge inside the scroll area */
+.draft-grid {
+  min-width: max-content;     /* grid can be wider than screen if needed */
+  width: max-content;         /* prevents weird centering/stretching */
+  justify-content: start;
+  margin: 0;                  /* kill centering */
+}
+
+/* If you have a container that adds left padding, neutralize it on this page */
+body.draft-page .app-shell,
+body.draft-page .app-main,
+body.draft-page .layout,
+body.draft-page main {
+  padding-left: 0 !important;
+}
+
+/* Optional: give a small left gutter so it's not glued to the edge */
+body.draft-page .draft-board-wrapper {
+  padding-left: 12px;
+  padding-right: 12px;
+}
