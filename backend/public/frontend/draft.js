@@ -77,22 +77,26 @@ async function loadDraftBoard() {
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
-    const metaObj = getTeamMeta(data, teamKey);
-    const name = metaObj?.name || metaObj?.team_name || metaObj?.teamName || teamShort(teamKey);
-    const logo = metaObj?.logo || metaObj?.logo_url || metaObj?.logoUrl || metaObj?.team_logo || null;
+    const team = teamsMap?.[teamKey] || null;
 
     const th = el("div", "draft-team-header");
 
-    if (logo) {
+    // Logo (if we have it)
+    if (team?.logo) {
       const img = document.createElement("img");
-      img.src = logo;
-      img.alt = name;
+      img.src = team.logo;
+      img.alt = team?.name ? `${team.name} logo` : "Team logo";
       img.loading = "lazy";
       th.appendChild(img);
     }
 
-    th.appendChild(el("div", "draft-team-name", name));
-    boardEl.appendChild(header);
+    // Name (fallback to T#)
+    const fallbackName = `T${teamIdFromKey(teamKey) || teamKey.replace(/^.*\.t\./, "")}`;
+    const nameText = team?.name || fallbackName;
+
+    th.appendChild(el("div", "draft-team-name", nameText));
+    th.appendChild(el("div", "draft-team-sub", fallbackName)); // small helper line
+
     header.appendChild(th);
   }
 
