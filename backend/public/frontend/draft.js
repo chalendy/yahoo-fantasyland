@@ -111,11 +111,10 @@ async function loadDraftBoard() {
         const nameRow = el("div", "draft-player-name", pick.player_name || pick.player_key);
 
         // Keeper badge (from server is_keeper)
-        if (pick.is_keeper) {
-          const badge = el("span", "draft-keeper-badge", "Keeper");
-          nameRow.appendChild(badge);
-          cell.classList.add("is-keeper");
-        }
+if (pick.is_keeper) {
+  cell.appendChild(el("div", "draft-keeper", "Keeper"));
+}
+
 
         cell.appendChild(nameRow);
       }
