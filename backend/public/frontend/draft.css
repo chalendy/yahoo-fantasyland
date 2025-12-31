@@ -1,146 +1,283 @@
-/* ===========================
-   Draft Board Layout
-   =========================== */
+/* =========================
+   Draft Board (fit-to-screen)
+   ========================= */
 
+/* Page shell */
 :root {
   --bg: #060714;
   --bg-elevated: #101322;
-  --bg-soft: #15182a;
-  --border: rgba(255,255,255,0.08);
-  --text: #f5f5f7;
-  --muted: #a1a5c1;
+  --bg-elevated-soft: #15182a;
+  --border-subtle: rgba(255, 255, 255, 0.08);
   --accent: #7f5af0;
-  --radius: 10px;
+  --accent-soft: rgba(127, 90, 240, 0.15);
+  --accent-strong: #ff8e3c;
+  --text: #f5f5f7;
+  --text-muted: #a1a5c1;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+
+  /* tune these if you want even tighter */
+  --round-col-w: 44px;          /* thinner round column */
+  --cell-pad-y: 6px;
+  --cell-pad-x: 6px;
+  --cell-min-h: 46px;
 }
 
-/* Page wrapper */
-.draft-board-wrapper {
-  width: 100%;
-  overflow: hidden; /* 🔑 kills horizontal scroll */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* ===========================
-   Grid Header
-   =========================== */
+/* IMPORTANT: do NOT make the board scroll horizontally */
+body {
+  overflow-x: hidden;
+}
 
+.draft-shell {
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 12px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.draft-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.draft-title h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.draft-title p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg-elevated-soft); }
+
+#status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--accent-strong);
+}
+
+/* Board wrapper */
+#draftBoard {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+}
+
+/* =========================
+   THE GRID (locked in)
+   ========================= */
+
+/* Header row (Round + 12 columns) */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 42px repeat(var(--cols), 1fr);
-  gap: 6px;
-  margin-bottom: 6px;
+  grid-template-columns: var(--round-col-w) repeat(var(--cols), minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
 }
 
+/* Corner "Rnd" cell */
 .draft-corner {
-  font-size: 0.7rem;
-  color: var(--muted);
-  text-align: center;
-}
-
-/* Team column header */
-.draft-team-header {
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-}
-
-.draft-team-header img {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.draft-team-name {
-  font-size: 0.7rem;
-  font-weight: 600;
-  line-height: 1.1;
-  white-space: normal; /* allow wrapping */
-}
-
-/* ===========================
-   Draft Grid
-   =========================== */
-
-.draft-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Each round row */
-.draft-row {
-  display: grid;
-  grid-template-columns: 42px repeat(var(--cols), 1fr);
-  gap: 6px;
-}
-
-/* Round label */
-.draft-round-cell {
-  font-size: 0.7rem;
-  color: var(--muted);
-  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 4px;
+}
+
+/* Team header cell */
+.draft-team-header {
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.14), transparent 55%),
+              var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 6px;
+  min-width: 0; /* allow shrinking */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.draft-team-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.draft-team-name {
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Each round row (Round label + 12 cells) */
+.draft-row {
+  display: grid;
+  grid-template-columns: var(--round-col-w) repeat(var(--cols), minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+
+/* Round label cell */
+.draft-round-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 142, 60, 0.10);
+  border: 1px solid rgba(255, 142, 60, 0.22);
+  color: var(--accent-strong);
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 6px 2px;
 }
 
 /* Pick cell */
 .draft-pick-cell {
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 6px 5px;
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--cell-pad-y) var(--cell-pad-x);
+  min-height: var(--cell-min-h);
+  min-width: 0; /* critical for shrink-to-fit */
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
-  min-width: 0; /* 🔑 prevents overflow */
 }
 
-/* Pick top row */
+/* Empty pick placeholder */
+.draft-pick-empty {
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+/* Pick meta row */
 .draft-pick-top {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  font-size: 0.65rem;
-  color: var(--muted);
+  gap: 6px;
+  min-width: 0;
+}
+
+.draft-pick-num {
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.9);
+  flex: 0 0 auto;
+}
+
+.draft-pick-meta {
+  font-size: 0.70rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.15;
-  word-break: break-word;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Keeper badge */
-.draft-keeper {
-  font-size: 0.6rem;
-  color: #ff8e3c;
+/* Keeper tag (optional) */
+.draft-keeper-tag {
+  margin-left: 6px;
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(127, 90, 240, 0.16);
+  border: 1px solid rgba(127, 90, 240, 0.32);
+  color: #d7ccff;
+  flex: 0 0 auto;
 }
 
-/* Empty pick */
-.draft-pick-empty {
+/* Footer */
+.draft-footer {
   text-align: center;
-  font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 6px;
 }
 
-/* ===========================
-   Responsive Safety
-   =========================== */
+/* =========================
+   Responsive tightening
+   ========================= */
 
+/* Slightly smaller text/padding on narrower screens to keep 12 columns */
 @media (max-width: 900px) {
-  .draft-team-name {
-    font-size: 0.65rem;
+  :root {
+    --round-col-w: 40px;
+    --cell-pad-y: 5px;
+    --cell-pad-x: 5px;
+    --cell-min-h: 44px;
   }
 
-  .draft-player-name {
-    font-size: 0.7rem;
-  }
+  .draft-team-name { font-size: 0.72rem; }
+  .draft-player-name { font-size: 0.74rem; }
+  .draft-pick-meta { font-size: 0.68rem; }
+}
+
+/* On very small widths, hide logos to save width */
+@media (max-width: 650px) {
+  .draft-team-logo { display: none; }
+  .draft-team-name { font-size: 0.70rem; }
 }
