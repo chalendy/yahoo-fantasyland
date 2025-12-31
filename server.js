@@ -353,6 +353,30 @@ app.get("/standings-raw", async (req, res) => {
 });
 
 // -----------------------------
+//  TRANSACTIONS RAW
+// -----------------------------
+app.get("/transactions", async (req, res) => {
+  if (!requireAuth(req, res)) return;
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/transactions?format=json`;
+
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Standings fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch league standings" });
+  }
+});
+
+
+// -----------------------------
 //  SETTINGS RAW
 // -----------------------------
 app.get("/settings-raw", async (req, res) => {
