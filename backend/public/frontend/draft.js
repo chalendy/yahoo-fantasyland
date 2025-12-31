@@ -88,6 +88,7 @@ async function loadDraftBoard() {
       img.src = logoUrl;
       img.alt = info?.name ? `${info.name} logo` : "Team logo";
       th.appendChild(img);
+    }
 
     // Name (fallback to T#)
     const fallbackName = `T${teamIdFromKey(teamKey) || teamKey.replace(/^.*\.t\./, "")}`;
