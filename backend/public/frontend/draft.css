@@ -458,3 +458,17 @@ body {
   background: rgba(127, 90, 240, 0.14);
   border: 1px solid rgba(127, 90, 240, 0.28);
 }
+
+/* Badge rail: reserves space so toggle doesn't shift text */
+.draft-badges{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-width: 120px; /* adjust if you want tighter/looser */
+}
+
+/* Hidden without collapsing layout */
+.draft-keeper-badge.is-hidden{
+  visibility:hidden;
+}
+
