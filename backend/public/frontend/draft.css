@@ -472,3 +472,44 @@ body {
   visibility:hidden;
 }
 
+/* One badge slot: always takes space so text never shifts */
+.draft-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  /* reserve consistent space */
+  min-width: 62px;
+
+  /* default hidden */
+  visibility: hidden;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+/* show Keeper */
+.draft-badge.is-keeper {
+  visibility: visible;
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.12);
+  border-color: rgba(255, 142, 60, 0.28);
+}
+
+/* show Eligible */
+.draft-badge.is-eligible {
+  visibility: visible;
+  color: #7dd3fc; /* light cyan-ish; change if you want */
+  background: rgba(125, 211, 252, 0.12);
+  border-color: rgba(125, 211, 252, 0.28);
+}
+
+/* explicit empty (keeps spacing) */
+.draft-badge.is-empty {
+  visibility: hidden;
+}
+
