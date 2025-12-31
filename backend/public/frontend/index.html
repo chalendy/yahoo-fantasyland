@@ -77,5 +77,32 @@ Click "Load Scoreboard JSON" to see the raw Yahoo API response here.
   </div>
 
   <script src="app.js"></script>
+
+  <script>
+  async function updateAuthButton() {
+    const btn = document.getElementById("yahooSignInBtn");
+    if (!btn) return;
+
+    try {
+      const res = await fetch("/auth-status", { cache: "no-store" });
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.authenticated) {
+        btn.textContent = "Signed In ✓";
+        btn.classList.remove("btn-primary");
+        btn.classList.add("btn-secondary");
+        btn.style.pointerEvents = "none";
+        btn.style.opacity = "0.75";
+      }
+    } catch (e) {
+      console.warn("Auth status check failed", e);
+    }
+  }
+
+  updateAuthButton();
+</script>
+  
 </body>
 </html>
