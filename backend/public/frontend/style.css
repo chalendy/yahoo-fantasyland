@@ -686,6 +686,63 @@ body {
   gap: 6px;
 }
 
+/* =========================
+   Position color coding
+   (subtle tint + left accent bar)
+========================= */
+
+.draft-pick-cell {
+  position: relative;
+  overflow: hidden;
+}
+
+/* left accent bar */
+.draft-pick-cell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 10px 0 0 10px;
+  opacity: 0.95;
+}
+
+/* Default / unknown */
+.pos-unk::before,
+.pos-other::before {
+  background: rgba(255, 255, 255, 0.18);
+}
+.pos-unk,
+.pos-other {
+  background: var(--bg-elevated-soft);
+}
+
+/* QB */
+.pos-qb::before { background: rgba(127, 90, 240, 0.9); }
+.pos-qb { background: linear-gradient(180deg, rgba(127, 90, 240, 0.14), rgba(21, 24, 42, 0)); }
+
+/* RB */
+.pos-rb::before { background: rgba(0, 220, 130, 0.9); }
+.pos-rb { background: linear-gradient(180deg, rgba(0, 220, 130, 0.12), rgba(21, 24, 42, 0)); }
+
+/* WR */
+.pos-wr::before { background: rgba(255, 214, 90, 0.95); }
+.pos-wr { background: linear-gradient(180deg, rgba(255, 214, 90, 0.12), rgba(21, 24, 42, 0)); }
+
+/* TE */
+.pos-te::before { background: rgba(64, 200, 255, 0.95); }
+.pos-te { background: linear-gradient(180deg, rgba(64, 200, 255, 0.12), rgba(21, 24, 42, 0)); }
+
+/* K */
+.pos-k::before { background: rgba(255, 142, 60, 0.95); }
+.pos-k { background: linear-gradient(180deg, rgba(255, 142, 60, 0.10), rgba(21, 24, 42, 0)); }
+
+/* DEF */
+.pos-def::before { background: rgba(255, 90, 125, 0.95); }
+.pos-def { background: linear-gradient(180deg, rgba(255, 90, 125, 0.10), rgba(21, 24, 42, 0)); }
+
+
 .draft-pick-top {
   display: flex;
   align-items: baseline;
