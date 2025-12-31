@@ -34,119 +34,26 @@ async function doFetch(url, options = {}) {
   return mod.default(url, options);
 }
 
-function requireAuth(req, res) {
+async function yahooGetJson(url) {
   if (!accessToken) {
-    res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
-    return false;
-  }
-  return true;
-}
-
-async function yahooGet(url) {
-  const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  const text = await apiRes.text();
-  if (!apiRes.ok) {
-    const err = new Error(`Yahoo API error HTTP ${apiRes.status}`);
-    err.body = text;
+    const err = new Error("Not authenticated");
+    err.status = 401;
     throw err;
   }
-  return JSON.parse(text);
-}
 
-// -----------------------------
-//  Yahoo JSON helpers (Yahoo returns a lot of arrays/objects)
-// -----------------------------
-function extractDraftResults(draftJson) {
-  // draftJson.fantasy_content.league[1].draft_results
-  const leagueArr = draftJson?.fantasy_content?.league;
-  const draftResultsObj = leagueArr?.[1]?.draft_results;
-  if (!draftResultsObj) return [];
+  const apiRes = await doFetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-  const results = [];
-  for (const k of Object.keys(draftResultsObj)) {
-    if (k === "count") continue;
-    const dr = draftResultsObj[k]?.draft_result;
-    if (!dr) continue;
-    results.push({
-      pick: Number(dr.pick),
-      round: Number(dr.round),
-      team_key: String(dr.team_key),
-      player_key: String(dr.player_key),
-    });
-  }
-  // Sort by overall pick
-  results.sort((a, b) => a.pick - b.pick);
-  return results;
-}
-
-function extractTeamsMeta(teamsJson) {
-  // teamsJson.fantasy_content.league[1].teams
-  const leagueArr = teamsJson?.fantasy_content?.league;
-  const teamsObj = leagueArr?.[1]?.teams;
-  if (!teamsObj) return new Map();
-
-  const map = new Map();
-
-  for (const k of Object.keys(teamsObj)) {
-    if (k === "count") continue;
-    const teamArr = teamsObj[k]?.team;
-    if (!Array.isArray(teamArr) || !Array.isArray(teamArr[0])) continue;
-
-    const parts = teamArr[0]; // array of small objects
-    const team_key = parts.find((x) => x?.team_key)?.team_key;
-    const name = parts.find((x) => x?.name)?.name;
-
-    // logo: parts.find(x => x.team_logos)?.team_logos[0].team_logo.url
-    let logoUrl = "";
-    const logosBlock = parts.find((x) => x?.team_logos)?.team_logos;
-    if (Array.isArray(logosBlock) && logosBlock[0]?.team_logo?.url) {
-      logoUrl = logosBlock[0].team_logo.url;
-    }
-
-    if (team_key) {
-      map.set(String(team_key), { team_key: String(team_key), name: name ? String(name) : String(team_key), logoUrl });
-    }
+  const bodyText = await apiRes.text();
+  if (!apiRes.ok) {
+    const err = new Error("Yahoo API error");
+    err.status = 500;
+    err.body = bodyText;
+    throw err;
   }
 
-  return map;
-}
-
-function extractPlayersMeta(playersJson) {
-  // playersJson.fantasy_content.league[1].players
-  const leagueArr = playersJson?.fantasy_content?.league;
-  const playersObj = leagueArr?.[1]?.players;
-  const map = new Map();
-  if (!playersObj) return map;
-
-  for (const k of Object.keys(playersObj)) {
-    if (k === "count") continue;
-    const playerArr = playersObj[k]?.player;
-    if (!Array.isArray(playerArr) || !Array.isArray(playerArr[0])) continue;
-
-    const parts = playerArr[0];
-    const player_key = parts.find((x) => x?.player_key)?.player_key;
-
-    const nameFull = parts.find((x) => x?.name)?.name?.full;
-    const displayPos = parts.find((x) => x?.display_position)?.display_position;
-    const teamAbbr = parts.find((x) => x?.editorial_team_abbr)?.editorial_team_abbr;
-
-    if (player_key) {
-      map.set(String(player_key), {
-        player_key: String(player_key),
-        player_name: nameFull ? String(nameFull) : "",
-        player_pos: displayPos ? String(displayPos) : "",
-        player_team: teamAbbr ? String(teamAbbr) : "",
-      });
-    }
-  }
-
-  return map;
-}
-
-function chunk(arr, size) {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+  return JSON.parse(bodyText);
 }
 
 // -----------------------------
@@ -167,7 +74,9 @@ app.get("/auth/start", (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
 
-  if (!code) return res.status(400).send("Missing authorization code.");
+  if (!code) {
+    return res.status(400).send("Missing authorization code.");
+  }
 
   try {
     const tokenResponse = await doFetch("https://api.login.yahoo.com/oauth2/get_token", {
@@ -184,6 +93,7 @@ app.get("/auth/callback", async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
+
     if (tokenData.error) {
       console.error("Token error:", tokenData);
       return res.status(400).send("Token error: " + JSON.stringify(tokenData));
@@ -202,7 +112,9 @@ app.get("/auth/callback", async (req, res) => {
 //  SCOREBOARD (supports ?week=)
 // -----------------------------
 app.get("/scoreboard", async (req, res) => {
-  if (!requireAuth(req, res)) return;
+  if (!accessToken) {
+    return res.status(401).json({ error: "Not authenticated. Please click Sign In first." });
+  }
 
   try {
     const week = req.query.week ? String(req.query.week) : null;
@@ -213,9 +125,14 @@ app.get("/scoreboard", async (req, res) => {
           )}?format=json`
         : `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/scoreboard?format=json`;
 
-    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const apiRes = await doFetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
     const bodyText = await apiRes.text();
-    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    if (!apiRes.ok) {
+      return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+    }
 
     res.type("application/json").send(bodyText);
   } catch (err) {
@@ -228,11 +145,12 @@ app.get("/scoreboard", async (req, res) => {
 //  STANDINGS RAW
 // -----------------------------
 app.get("/standings-raw", async (req, res) => {
-  if (!requireAuth(req, res)) return;
+  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/standings?format=json`;
     const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
     const bodyText = await apiRes.text();
     if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
 
@@ -247,11 +165,12 @@ app.get("/standings-raw", async (req, res) => {
 //  SETTINGS RAW
 // -----------------------------
 app.get("/settings-raw", async (req, res) => {
-  if (!requireAuth(req, res)) return;
+  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
 
   try {
     const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/settings?format=json`;
     const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
     const bodyText = await apiRes.text();
     if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
 
@@ -263,89 +182,166 @@ app.get("/settings-raw", async (req, res) => {
 });
 
 // -----------------------------
-//  DRAFT BOARD DATA (NEW)
-//  Returns: { meta, draftOrder, teamsByKey, rounds }
+//  DRAFT RESULTS RAW
 // -----------------------------
-app.get("/draftboard-data", async (req, res) => {
-  if (!requireAuth(req, res)) return;
+app.get("/draftresults-raw", async (req, res) => {
+  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
 
   try {
-    // 1) Draft results
-    const draftUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
-    const draftJson = await yahooGet(draftUrl);
-    const picks = extractDraftResults(draftJson);
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`;
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
 
-    if (!picks.length) {
-      return res.json({ meta: { totalPicks: 0, maxRound: 0 }, draftOrder: [], teamsByKey: {}, rounds: [] });
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Draftresults fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch draft results" });
+  }
+});
+
+// -----------------------------
+//  ROSTERS RAW (teams + players)
+// -----------------------------
+app.get("/rosters-raw", async (req, res) => {
+  if (!accessToken) return res.status(401).json({ error: "Not authenticated." });
+
+  try {
+    const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`;
+    const apiRes = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    const bodyText = await apiRes.text();
+    if (!apiRes.ok) return res.status(500).json({ error: "Yahoo API error", body: bodyText });
+
+    res.type("application/json").send(bodyText);
+  } catch (err) {
+    console.error("Rosters fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch rosters" });
+  }
+});
+
+// -----------------------------
+//  DRAFTBOARD DATA (normalized)
+// -----------------------------
+app.get("/draftboard-data", async (req, res) => {
+  try {
+    const draftJson = await yahooGetJson(
+      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/draftresults?format=json`
+    );
+
+    const rosterJson = await yahooGetJson(
+      `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams/roster?format=json`
+    );
+
+    // ---- Extract team meta + player lookup from rosters ----
+    const teamsBlock = rosterJson?.fantasy_content?.league?.[1]?.teams;
+    const teams = {}; // team_key -> { name, logo_url }
+    const playerByKey = new Map(); // player_key -> { name, pos, team }
+
+    if (teamsBlock) {
+      for (const k of Object.keys(teamsBlock)) {
+        if (k === "count") continue;
+        const teamArr = teamsBlock[k]?.team;
+        if (!Array.isArray(teamArr) || !teamArr.length) continue;
+
+        const teamMetaArr = teamArr[0]; // array of objects (team_key, name, logos, etc.)
+        const rosterObj = teamArr[1]?.roster;
+
+        const teamKey = teamMetaArr?.find?.((o) => o?.team_key)?.team_key;
+        const teamName = teamMetaArr?.find?.((o) => o?.name)?.name;
+        const logoUrl =
+          teamMetaArr
+            ?.find?.((o) => o?.team_logos)
+            ?.team_logos?.[0]?.team_logo?.url || "";
+
+        if (teamKey) {
+          teams[teamKey] = { name: teamName || teamKey, logo_url: logoUrl || "" };
+        }
+
+        // players
+        const playersBlock = rosterObj?.["0"]?.players;
+        if (playersBlock) {
+          for (const pk of Object.keys(playersBlock)) {
+            const pArr = playersBlock[pk]?.player;
+            const pMetaArr = pArr?.[0];
+            if (!Array.isArray(pMetaArr)) continue;
+
+            const player_key = pMetaArr.find((o) => o?.player_key)?.player_key;
+            const fullName = pMetaArr.find((o) => o?.name)?.name?.full;
+            const pos = pMetaArr.find((o) => o?.display_position)?.display_position;
+            const teamAbbr = pMetaArr.find((o) => o?.editorial_team_abbr)?.editorial_team_abbr;
+
+            if (player_key) {
+              playerByKey.set(player_key, {
+                name: fullName || player_key,
+                pos: pos || "",
+                team: teamAbbr || "",
+              });
+            }
+          }
+        }
+      }
     }
 
-    const maxRound = Math.max(...picks.map((p) => p.round));
+    // ---- Extract picks from draft results ----
+    const draftResultsBlock = draftJson?.fantasy_content?.league?.[1]?.draft_results;
+    const picks = [];
+    let maxRound = 0;
 
-    // draft order = round 1 by ascending pick
+    if (draftResultsBlock) {
+      for (const k of Object.keys(draftResultsBlock)) {
+        if (k === "count") continue;
+        const dr = draftResultsBlock[k]?.draft_result;
+        if (!dr) continue;
+
+        const round = Number(dr.round);
+        const pick = Number(dr.pick);
+        if (round > maxRound) maxRound = round;
+
+        const team_key = dr.team_key;
+        const player_key = dr.player_key;
+
+        const mapped = playerByKey.get(player_key);
+        const isKept = !mapped; // your rule: unmapped => likely keeper/kept
+
+        picks.push({
+          pick,
+          round,
+          team_key,
+          player_key,
+          player_name: mapped?.name || player_key,
+          player_pos: mapped?.pos || "",
+          player_team: mapped?.team || "",
+          is_kept: isKept,
+        });
+      }
+    }
+
+    // Draft order = round 1 team order by pick
     const round1 = picks.filter((p) => p.round === 1).sort((a, b) => a.pick - b.pick);
     const draftOrder = round1.map((p) => p.team_key);
 
-    // 2) Teams (names + logos)
-    const teamsUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/teams?format=json`;
-    const teamsJson = await yahooGet(teamsUrl);
-    const teamsMeta = extractTeamsMeta(teamsJson);
-    const teamsByKey = Object.fromEntries(teamsMeta.entries());
-
-    // 3) Players info in batches
-    const allPlayerKeys = Array.from(new Set(picks.map((p) => p.player_key)));
-    const playerInfoMap = new Map();
-
-    // keep batches modest to avoid URL-length issues
-    const batches = chunk(allPlayerKeys, 25);
-
-    for (const batch of batches) {
-      const keys = batch.join(",");
-      const playersUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${LEAGUE_KEY}/players;player_keys=${encodeURIComponent(
-        keys
-      )}?format=json`;
-
-      const playersJson = await yahooGet(playersUrl);
-      const batchMap = extractPlayersMeta(playersJson);
-
-      for (const [k, v] of batchMap.entries()) playerInfoMap.set(k, v);
-    }
-
-    // 4) Build rounds + enrich picks
+    // Group picks by round
     const rounds = [];
     for (let r = 1; r <= maxRound; r++) {
-      const roundPicks = picks
-        .filter((p) => p.round === r)
-        .sort((a, b) => a.pick - b.pick)
-        .map((p) => {
-          const info = playerInfoMap.get(p.player_key);
-          const resolvedName = info?.player_name?.trim();
-
-          const keeperGuess = !resolvedName; // only flag when we couldn't resolve player meta
-
-          return {
-            pick: p.pick,
-            round: p.round,
-            team_key: p.team_key,
-            player_key: p.player_key,
-            player_name: resolvedName ? info.player_name : p.player_key, // fallback to raw key (what you saw)
-            player_pos: resolvedName ? (info.player_pos || "") : "",
-            player_team: resolvedName ? (info.player_team || "") : "",
-            keeperGuess,
-          };
-        });
-
-      rounds.push({ round: r, picks: roundPicks });
+      const rPicks = picks.filter((p) => p.round === r).sort((a, b) => a.pick - b.pick);
+      rounds.push({ round: r, picks: rPicks });
     }
 
     res.json({
       meta: { totalPicks: picks.length, maxRound },
       draftOrder,
-      teamsByKey,
       rounds,
+      teams,
     });
   } catch (err) {
-    console.error("Draftboard error:", err?.message, err?.body ? `\nBody: ${err.body}` : "");
-    res.status(500).json({ error: "Failed to build draftboard data" });
+    const status = err.status || 500;
+    console.error("draftboard-data error:", err);
+    res.status(status).json({
+      error: status === 401 ? "Not authenticated" : "Failed to build draft board data",
+      body: err.body,
+    });
   }
 });
 
