@@ -331,27 +331,32 @@ function renderBoard(data) {
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // We reserve badge space with a placeholder so names align.
-      // Then we show either "Keeper" or "Eligible" (never both).
-      const badge = el("span", "draft-keeper-badge", ""); // text set below
-      badge.classList.add("is-placeholder"); // optional: if your CSS uses this
+// We reserve badge space with ONE badge element so names align.
+// Then we show either "Keeper" or "Eligible" (never both).
+const badge = el("span", "draft-keeper-badge", "");
+badge.classList.add("is-placeholder");
 
-      // Determine which badge should be shown
-      if (pick.is_keeper) {
-        badge.textContent = "Keeper";
-        badge.classList.remove("is-hidden");
-        badge.style.visibility = "visible";
-      } else if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
-        badge.textContent = "Eligible";
-        badge.classList.remove("is-hidden");
-        badge.style.visibility = "visible";
-      } else {
-        // placeholder (takes space, but not visible, prevents shifting)
-        badge.textContent = "Keeper"; // keep width stable (same as Keeper/Eligible)
-        badge.style.visibility = "hidden";
-      }
+// Reset any prior type classes
+badge.classList.remove("is-keeper", "is-eligible");
 
-      left.appendChild(badge);
+// Determine which badge should be shown
+if (pick.is_keeper) {
+  badge.textContent = "Keeper";
+  badge.classList.add("is-keeper");
+  badge.style.visibility = "visible";
+} else if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
+  badge.textContent = "Eligible";
+  badge.classList.add("is-eligible");
+  badge.style.visibility = "visible";
+} else {
+  // placeholder (takes space, but not visible, prevents shifting)
+  // Use the longer word so reserved width is stable
+  badge.textContent = "Eligible";
+  badge.style.visibility = "hidden";
+}
+
+left.appendChild(badge);
+
 
       const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
       const right = el("div", "draft-pick-meta", metaText);
