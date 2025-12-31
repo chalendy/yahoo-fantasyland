@@ -71,6 +71,33 @@ function getMovedPlayersSet(data) {
   return new Set(raw.filter(Boolean).map(String));
 }
 
+// Toggle UI (own line under header)
+// Position class helpers
+// -------------------------
+function normalizePos(pos) {
+  const p = String(pos || "").toUpperCase().trim();
+  // Yahoo sometimes uses DEF, sometimes D/ST. We'll treat both as DEF.
+  if (p === "D/ST") return "DEF";
+  return p;
+}
+
+function posClass(pos) {
+  const p = normalizePos(pos);
+  if (!p) return "pos-unk";
+
+  // common positions
+  if (p === "QB") return "pos-qb";
+  if (p === "RB") return "pos-rb";
+  if (p === "WR") return "pos-wr";
+  if (p === "TE") return "pos-te";
+  if (p === "K") return "pos-k";
+  if (p === "DEF") return "pos-def";
+
+  // anything else (IDP etc.)
+  return "pos-other";
+}
+
+
 // -------------------------
 // Toggle UI
 // -------------------------
