@@ -360,3 +360,10 @@ body.draft-page .draft-board-wrapper {
   border: 1px solid rgba(255, 142, 60, 0.35);
   white-space: nowrap;
 }
+
+.draft-pick-num-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
