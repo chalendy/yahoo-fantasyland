@@ -1,8 +1,7 @@
-/* =========================
-   Draft Board (fit-to-screen)
-   ========================= */
+/* =========================================================
+   Draft Board Theme (matches your app theme)
+   ========================================================= */
 
-/* Page shell */
 :root {
   --bg: #060714;
   --bg-elevated: #101322;
@@ -13,271 +12,362 @@
   --accent-strong: #ff8e3c;
   --text: #f5f5f7;
   --text-muted: #a1a5c1;
+  --danger: #ff4d4f;
   --radius-lg: 16px;
   --radius-md: 10px;
 
-  /* tune these if you want even tighter */
-  --round-col-w: 44px;          /* thinner round column */
+  /* sizing knobs */
+  --round-col: 44px;            /* thinner round column */
   --cell-pad-y: 6px;
-  --cell-pad-x: 6px;
-  --cell-min-h: 46px;
+  --cell-pad-x: 8px;
+  --cell-min-h: 44px;
+  --font-base: 12px;
+  --font-name: 12px;
+  --font-meta: 10px;
 }
 
-html, body {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
   color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* IMPORTANT: do NOT make the board scroll horizontally */
-body {
-  overflow-x: hidden;
-}
+/* =========================================================
+   Page shell
+   ========================================================= */
 
-.draft-shell {
+.app-shell {
   min-height: 100vh;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px 12px 28px;
+  padding: 20px 14px 26px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
-.draft-header {
+.app-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
 }
 
-.draft-title h1 {
+.app-header h1 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.4rem;
 }
 
-.draft-title p {
+.subtitle {
   margin: 4px 0 0;
+  font-size: 0.9rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
 }
 
-.draft-actions {
+.controls-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+}
+
+.button-row {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .btn {
   border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated);
-  color: var(--text);
-  padding: 7px 12px;
+  border: none;
+  padding: 8px 14px;
   font-size: 0.85rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
   white-space: nowrap;
 }
-.btn:hover { background: var(--bg-elevated-soft); }
 
-#status {
-  margin: 0;
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #c34eff);
+  color: white;
+  box-shadow: 0 8px 20px rgba(127, 90, 240, 0.5);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(127, 90, 240, 0.7);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated-soft);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background: #1e2236;
+}
+
+.status-message {
+  margin: 10px 0 0;
   font-size: 0.85rem;
   color: var(--accent-strong);
 }
 
-/* Board wrapper */
-#draftBoard {
+/* =========================================================
+   Draft board wrapper
+   ========================================================= */
+
+.draft-board-panel {
   background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
 }
 
-/* =========================
-   THE GRID (locked in)
-   ========================= */
+/* Critical: prevent accidental one-column flex layouts */
+#draftBoard,
+.draft-board {
+  width: 100%;
+}
 
-/* Header row (Round + 12 columns) */
+/* Try to keep on one screen: avoid horizontal scrolling if possible */
+.draft-board-panel {
+  overflow: hidden; /* if something overflows, it won't force scrollbars */
+}
+
+/* =========================================================
+   Grid: header + rows
+   IMPORTANT: header and rows MUST share the same grid template
+   ========================================================= */
+
 .draft-grid-header {
-  display: grid;
-  grid-template-columns: var(--round-col-w) repeat(var(--cols), minmax(0, 1fr));
+  display: grid; /* must be grid */
+  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(0, 1fr));
   gap: 8px;
   align-items: stretch;
   margin-bottom: 8px;
 }
 
-/* Corner "Rnd" cell */
 .draft-corner {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated-soft);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 11px;
   color: var(--text-muted);
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 6px 4px;
+  padding: 6px 6px;
 }
 
-/* Team header cell */
 .draft-team-header {
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 45%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.14), transparent 55%),
-              var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 6px;
-  min-width: 0; /* allow shrinking */
+  border: 1px solid var(--border-subtle);
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.16), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 55%),
+              var(--bg-elevated-soft);
+  padding: 6px 8px;
+  min-width: 0; /* allow text to shrink */
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
+.draft-team-header img,
 .draft-team-logo {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
   flex: 0 0 auto;
-  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.draft-team-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
 }
 
 .draft-team-name {
-  min-width: 0;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Each round row (Round label + 12 cells) */
+.draft-team-manager {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.draft-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Each round row is ALSO a grid with same template */
 .draft-row {
-  display: grid;
-  grid-template-columns: var(--round-col-w) repeat(var(--cols), minmax(0, 1fr));
+  display: grid; /* must be grid */
+  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(0, 1fr));
   gap: 8px;
   align-items: stretch;
-  margin-bottom: 8px;
 }
 
 /* Round label cell */
 .draft-round-cell {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 142, 60, 0.12);
+  color: var(--accent-strong);
+  font-weight: 800;
+  font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 142, 60, 0.10);
-  border: 1px solid rgba(255, 142, 60, 0.22);
-  color: var(--accent-strong);
-  border-radius: var(--radius-md);
-  font-weight: 800;
-  font-size: 0.78rem;
-  padding: 6px 2px;
+  padding: 6px 4px;
 }
 
 /* Pick cell */
 .draft-pick-cell {
-  background: var(--bg-elevated-soft);
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 45%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.10), transparent 55%),
+              var(--bg-elevated-soft);
   padding: var(--cell-pad-y) var(--cell-pad-x);
   min-height: var(--cell-min-h);
-  min-width: 0; /* critical for shrink-to-fit */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  min-width: 0;
 }
 
-/* Empty pick placeholder */
-.draft-pick-empty {
-  color: var(--text-muted);
-  text-align: center;
-  font-size: 0.85rem;
-}
-
-/* Pick meta row */
 .draft-pick-top {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  margin-bottom: 2px;
 }
 
 .draft-pick-num {
-  font-weight: 800;
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.9);
+  font-size: 10px;
+  color: var(--text-muted);
   flex: 0 0 auto;
 }
 
 .draft-pick-meta {
-  font-size: 0.70rem;
+  font-size: var(--font-meta);
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  min-width: 0;
+}
+
+.draft-player-name {
+  font-size: var(--font-name);
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
 
-/* Player name */
-.draft-player-name {
-  font-size: 0.78rem;
-  font-weight: 650;
-  line-height: 1.05;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Keeper tag (optional) */
-.draft-keeper-tag {
-  margin-left: 6px;
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(127, 90, 240, 0.16);
-  border: 1px solid rgba(127, 90, 240, 0.32);
-  color: #d7ccff;
-  flex: 0 0 auto;
-}
-
-/* Footer */
-.draft-footer {
+.draft-pick-empty {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.25);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  margin-top: 6px;
 }
 
-/* =========================
-   Responsive tightening
-   ========================= */
+.keeper-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--accent-strong);
+}
 
-/* Slightly smaller text/padding on narrower screens to keep 12 columns */
-@media (max-width: 900px) {
+.keeper-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 2px rgba(255, 142, 60, 0.18);
+}
+
+/* =========================================================
+   Responsive: squeeze to fit screen (no horizontal scroll)
+   ========================================================= */
+
+@media (max-width: 1200px) {
   :root {
-    --round-col-w: 40px;
-    --cell-pad-y: 5px;
-    --cell-pad-x: 5px;
-    --cell-min-h: 44px;
+    --round-col: 40px;
+    --cell-pad-y: 6px;
+    --cell-pad-x: 7px;
+    --cell-min-h: 42px;
+    --font-name: 11px;
+    --font-meta: 10px;
   }
 
-  .draft-team-name { font-size: 0.72rem; }
-  .draft-player-name { font-size: 0.74rem; }
-  .draft-pick-meta { font-size: 0.68rem; }
+  .draft-team-header img,
+  .draft-team-logo {
+    width: 20px;
+    height: 20px;
+  }
+
+  .draft-team-name { font-size: 10.5px; }
+  .draft-team-manager { font-size: 9.5px; }
 }
 
-/* On very small widths, hide logos to save width */
-@media (max-width: 650px) {
-  .draft-team-logo { display: none; }
-  .draft-team-name { font-size: 0.70rem; }
+@media (max-width: 980px) {
+  :root {
+    --round-col: 36px;
+    --cell-pad-y: 5px;
+    --cell-pad-x: 6px;
+    --cell-min-h: 40px;
+    --font-name: 10.5px;
+    --font-meta: 9.5px;
+  }
+
+  .draft-team-header {
+    padding: 6px 6px;
+    gap: 6px;
+  }
+
+  .draft-team-header img,
+  .draft-team-logo {
+    width: 18px;
+    height: 18px;
+  }
+
+  .draft-team-manager {
+    display: none; /* helps fit width */
+  }
 }
