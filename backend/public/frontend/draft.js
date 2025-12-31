@@ -80,20 +80,10 @@ let keeperToggleState = {
   ready: false,
 };
 
-// Prefer a dedicated container in the header:
-
-// <div id="draftHeaderRow"></div>
-
-function getToggleHost() {
-
-  return (
-
-    document.getElementById("draftHeaderRow") ||
-
+function ensureToggleUI() {
+  const host =
     document.querySelector(".button-row") ||
-
     document.querySelector(".controls-card") ||
-
     document.querySelector(".app-header") ||
     document.body;
 
@@ -120,15 +110,7 @@ function getToggleHost() {
     if (window.__draftDataCache) renderBoard(window.__draftDataCache);
   });
 
-    // If host is the dedicated container, keep it on its own line
-
-  if (host && host.id === "draftHeaderRow") {
-
-    host.innerHTML = ""; // keep it clean/owned by this feature
-
-    host.appendChild(wrap);
-
-  } else if (host?.classList?.contains("button-row")) {
+  if (host.classList?.contains("button-row")) {
     host.appendChild(wrap);
   } else {
     boardEl?.parentNode?.insertBefore(wrap, boardEl);
