@@ -41,9 +41,6 @@ function teamShort(teamKey) {
 
 // -------------------------
 // Eligibility helpers
-// League rule:
-// - Keep 1 player next year IF drafted in Round 6+ AND still on your roster (not dropped)
-// - BUT: if the pick was itself a keeper, it is NOT eligible to be kept again
 // -------------------------
 function getCurrentRostersMap(data) {
   return (
@@ -67,6 +64,12 @@ function normalizeRosterMap(rostersMap) {
     }
   }
   return out;
+}
+
+function getMovedPlayersSet(data) {
+  const raw = data?.movedPlayers;
+  if (!Array.isArray(raw)) return null;
+  return new Set(raw.filter(Boolean).map(String));
 }
 
 // -------------------------
@@ -98,7 +101,7 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el("span", "", "Show keeper-eligible (Rd 6+ & still rostered)");
+  const txt = el("span", "", "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)");
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -122,7 +125,7 @@ function setToggleReady(isReady) {
   cb.disabled = !isReady;
   cb.title = isReady
     ? ""
-    : "Roster data not included in /draftboard-data yet (need current rosters by team_key).";
+    : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
 }
 
 // -------------------------
@@ -148,9 +151,9 @@ async function loadDraftBoard() {
 
   window.__draftDataCache = data;
 
-  const rawRosters = getCurrentRostersMap(data);
-  const rosterSets = normalizeRosterMap(rawRosters);
-  setToggleReady(!!rosterSets);
+  const rosterSets = normalizeRosterMap(getCurrentRostersMap(data));
+  const movedSet = getMovedPlayersSet(data);
+  setToggleReady(!!rosterSets && !!movedSet);
 
   renderBoard(data);
 }
@@ -167,7 +170,6 @@ function renderBoard(data) {
     return;
   }
 
-  // Build lookup: round -> team_key -> pick info
   const byRoundTeam = new Map();
   for (const r of rounds) {
     const m = new Map();
@@ -175,13 +177,12 @@ function renderBoard(data) {
     byRoundTeam.set(Number(r.round), m);
   }
 
-  // Roster sets for eligibility
   const rosterSets = normalizeRosterMap(getCurrentRostersMap(data));
-  const canComputeEligibility = !!rosterSets;
+  const movedSet = getMovedPlayersSet(data);
+  const canComputeEligibility = !!rosterSets && !!movedSet;
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -218,7 +219,6 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
-  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
@@ -241,20 +241,25 @@ function renderBoard(data) {
         continue;
       }
 
-      // Eligibility:
-      // drafted round >= 6 AND still on same team's roster
-      // AND NOT a keeper pick (keepers can't be kept again)
+      // Eligible if:
+      // - drafted round >= 6
+      // - still on same team's roster NOW
+      // - NOT a keeper already
+      // - NEVER dropped/traded (movedSet)
       let isEligible = false;
       if (canComputeEligibility) {
         const roster = rosterSets[teamKey];
         const roundNum = Number(pick.round);
         const playerKey = String(pick.player_key || "");
-        const wasKeeper = !!pick.is_keeper;
+        const neverMoved = !movedSet.has(playerKey);
 
-        isEligible = !wasKeeper && roundNum >= 6 && !!roster?.has(playerKey);
+        isEligible =
+          roundNum >= 6 &&
+          !!roster?.has(playerKey) &&
+          !pick.is_keeper &&
+          neverMoved;
       }
 
-      // If toggle is ON and we can compute: dim non-eligible cells
       if (keeperToggleState.enabled && canComputeEligibility && !isEligible) {
         cell.style.opacity = "0.25";
         cell.style.filter = "grayscale(0.35)";
@@ -263,18 +268,15 @@ function renderBoard(data) {
         cell.style.filter = "";
       }
 
-      // Top row: pick # + badges on left, meta on right
       const top = el("div", "draft-pick-top");
 
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // Existing keeper badge (from API logic)
       if (pick.is_keeper) {
         left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
       }
 
-      // Eligibility badge (only when toggle ON and eligible)
       if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
         left.appendChild(el("span", "draft-keeper-badge", "Eligible"));
       }
@@ -285,7 +287,6 @@ function renderBoard(data) {
       top.appendChild(left);
       top.appendChild(right);
 
-      // Player row: portrait + name (portrait optional)
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
@@ -322,9 +323,9 @@ function renderBoard(data) {
 
   if (keeperToggleState.enabled) {
     if (!canComputeEligibility) {
-      setStatus("Toggle needs current rosters included in /draftboard-data to calculate eligibility.");
+      setStatus("Toggle needs current rosters + movedPlayers included in /draftboard-data to calculate eligibility.");
     } else {
-      setStatus(`Showing keeper eligibility (keepers excluded) · ${total || "?"} picks · ${maxRound} rounds`);
+      setStatus(`Showing keeper eligibility · ${total || "?"} picks · ${maxRound} rounds`);
     }
   } else {
     setStatus(`Loaded ${total || "?"} picks · ${maxRound} rounds`);
