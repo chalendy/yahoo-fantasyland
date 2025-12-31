@@ -1,3 +1,4 @@
+
 const statusEl = document.getElementById("status");
 const boardEl = document.getElementById("draftBoard");
 const reloadBtn = document.getElementById("reloadBtn");
