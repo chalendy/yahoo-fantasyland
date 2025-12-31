@@ -303,9 +303,12 @@ function renderBoard(data) {
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      if (pick.is_keeper) {
-        left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
-      }
+if (pick.is_keeper) {
+  left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
+} else {
+  left.appendChild(el("span", "draft-keeper-badge draft-keeper-placeholder", "Keeper"));
+}
+
 
       if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
         left.appendChild(el("span", "draft-keeper-badge", "Eligible"));
