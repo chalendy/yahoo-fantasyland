@@ -737,3 +737,8 @@ body {
   align-items: center;
   height: 100%;
 }
+
+a.btn,
+a.btn:visited {
+  text-decoration: none;
+}
