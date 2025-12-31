@@ -17,13 +17,7 @@ function el(tag, className, text) {
 
 // Try multiple possible shapes for team metadata coming from /draftboard-data
 function getTeamMeta(data, teamKey) {
-  const sources = [
-    data?.teamsByKey,
-    data?.teams,
-    data?.teamMeta,
-    data?.teamMap,
-  ];
-
+  const sources = [data?.teamsByKey, data?.teams, data?.teamMeta, data?.teamMap];
   for (const src of sources) {
     if (src && typeof src === "object") {
       const v = src[teamKey];
@@ -46,8 +40,6 @@ async function loadDraftBoard() {
   try {
     const res = await fetch("/draftboard-data", { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    // If you ever accidentally get HTML (login page), this will throw:
     data = await res.json();
   } catch (e) {
     console.error(e);
@@ -69,18 +61,29 @@ async function loadDraftBoard() {
     byRoundTeam.set(r.round, m);
   }
 
-  // Important: CSS uses --cols for repeat(var(--cols), ...)
-  // Set it on the container that wraps header + rows.
+  // set CSS var once; it inherits into header/rows
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header row
+  // -----------------------
+  // Header row (append ONCE)
+  // -----------------------
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
   for (const teamKey of draftOrder) {
     const metaObj = getTeamMeta(data, teamKey);
-    const name = metaObj?.name || metaObj?.team_name || metaObj?.teamName || teamShort(teamKey);
-    const logo = metaObj?.logo || metaObj?.logo_url || metaObj?.logoUrl || metaObj?.team_logo || null;
+    const name =
+      metaObj?.name ||
+      metaObj?.team_name ||
+      metaObj?.teamName ||
+      teamShort(teamKey);
+
+    const logo =
+      metaObj?.logo ||
+      metaObj?.logo_url ||
+      metaObj?.logoUrl ||
+      metaObj?.team_logo ||
+      null;
 
     const th = el("div", "draft-team-header");
 
@@ -93,14 +96,19 @@ async function loadDraftBoard() {
     }
 
     th.appendChild(el("div", "draft-team-name", name));
-    boardEl.appendChild(header);
     header.appendChild(th);
   }
 
+  boardEl.appendChild(header);
+
+  // -----------------------
   // Grid body
+  // -----------------------
   const grid = el("div", "draft-grid");
 
-  const maxRound = Number(meta?.maxRound) || Math.max(...rounds.map(r => Number(r.round || 0)));
+  const maxRound =
+    Number(meta?.maxRound) ||
+    Math.max(...rounds.map((r) => Number(r.round || 0)));
 
   for (let r = 1; r <= maxRound; r++) {
     const row = el("div", "draft-row");
@@ -115,22 +123,19 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
-        // Top line: pick # + (Keeper badge) on left, position/team on right
         const top = el("div", "draft-pick-top");
 
+        // left: #pick + keeper badge beside it
         const left = el("div", "draft-pick-left");
         left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
         if (pick.is_keeper) {
-          // Use a badge class (your CSS should style this as a pill/badge)
           left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
         }
 
-        const right = el(
-          "div",
-          "draft-pick-meta",
-          `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim()
-        );
+        // right: pos/team
+        const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
+        const right = el("div", "draft-pick-meta", metaText);
 
         top.appendChild(left);
         top.appendChild(right);
