@@ -1,100 +1,152 @@
 /* =========================
-   Draft Board Layout Fixes
-   ========================= */
+   Draft Board Layout
+========================= */
 
-/* Board wrapper */
-#draftBoard {
+.draft-board-wrapper {
   width: 100%;
   overflow-x: auto;
+  padding-bottom: 8px;
 }
 
-/* Main grid */
+/* Grid container */
 .draft-grid {
   display: grid;
-  grid-auto-rows: min-content;
-  width: max-content;
+  grid-auto-rows: auto;
+  gap: 6px;
   min-width: 100%;
 }
 
-/* Header row */
+/* =========================
+   Header Row
+========================= */
+
 .draft-grid-header {
   display: grid;
-  grid-template-columns: 48px repeat(var(--cols), minmax(160px, 1fr));
+  grid-template-columns: 44px repeat(var(--cols), minmax(130px, 1fr));
+  gap: 6px;
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg-elevated);
+  background: var(--bg);
+  padding-bottom: 4px;
 }
 
-/* Corner (Round label header) */
+/* Round corner */
 .draft-corner {
-  text-align: center;
   font-size: 0.7rem;
   color: var(--text-muted);
+  text-align: center;
+  align-self: end;
 }
 
-/* Team headers */
+/* Team header */
 .draft-team-header {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 6px 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
-  min-width: 160px;
+  gap: 4px;
+  text-align: center;
 }
 
-/* Team logo */
-.draft-team-logo {
+.draft-team-header img {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-/* Team name */
 .draft-team-name {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.1;
 }
 
-/* Body rows */
+/* =========================
+   Draft Rows
+========================= */
+
 .draft-row {
   display: grid;
-  grid-template-columns: 48px repeat(var(--cols), minmax(160px, 1fr));
+  grid-template-columns: 44px repeat(var(--cols), minmax(130px, 1fr));
+  gap: 6px;
 }
 
-/* Round cell */
+/* Round label */
 .draft-round-cell {
-  text-align: center;
   font-size: 0.7rem;
   color: var(--accent-strong);
-  padding: 6px 0;
+  text-align: center;
+  padding-top: 8px;
 }
 
-/* Pick cell */
+/* =========================
+   Pick Cells
+========================= */
+
 .draft-pick-cell {
+  background: var(--bg-elevated-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 6px 8px;
-  border-left: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 54px;
 }
 
-/* Player name */
-.draft-player-name {
+.draft-pick-empty {
+  color: var(--text-muted);
+  text-align: center;
   font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* Pick metadata */
-.draft-pick-meta {
+/* Pick meta row */
+.draft-pick-top {
+  display: flex;
+  justify-content: space-between;
   font-size: 0.65rem;
   color: var(--text-muted);
 }
 
-/* Keeper badge */
+/* Player name */
+.draft-player-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+/* Keeper flag */
 .draft-keeper {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   color: var(--accent-strong);
-  margin-left: 4px;
+}
+
+/* =========================
+   Responsive Tweaks
+========================= */
+
+@media (max-width: 900px) {
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 36px repeat(var(--cols), minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .draft-grid-header,
+  .draft-row {
+    grid-template-columns: 32px repeat(var(--cols), minmax(110px, 1fr));
+  }
+
+  .draft-team-name {
+    font-size: 0.65rem;
+  }
+
+  .draft-player-name {
+    font-size: 0.75rem;
+  }
 }
