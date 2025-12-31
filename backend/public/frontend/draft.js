@@ -71,33 +71,6 @@ function getMovedPlayersSet(data) {
   return new Set(raw.filter(Boolean).map(String));
 }
 
-// Toggle UI (own line under header)
-// Position class helpers
-// -------------------------
-function normalizePos(pos) {
-  const p = String(pos || "").toUpperCase().trim();
-  // Yahoo sometimes uses DEF, sometimes D/ST. We'll treat both as DEF.
-  if (p === "D/ST") return "DEF";
-  return p;
-}
-
-function posClass(pos) {
-  const p = normalizePos(pos);
-  if (!p) return "pos-unk";
-
-  // common positions
-  if (p === "QB") return "pos-qb";
-  if (p === "RB") return "pos-rb";
-  if (p === "WR") return "pos-wr";
-  if (p === "TE") return "pos-te";
-  if (p === "K") return "pos-k";
-  if (p === "DEF") return "pos-def";
-
-  // anything else (IDP etc.)
-  return "pos-other";
-}
-
-
 // -------------------------
 // Toggle UI
 // -------------------------
@@ -127,7 +100,11 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el("span", "", "Show keeper-eligible (Rd 6+, no drop/trade)");
+  const txt = el(
+    "span",
+    "",
+    "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)"
+  );
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -209,7 +186,7 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
-  // Header
+  // Header row
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -246,9 +223,8 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
-  // Body grid
+  // Body
   const grid = el("div", "draft-grid");
-
   const maxRound =
     Number(meta?.maxRound) ||
     Math.max(...rounds.map((r) => Number(r.round || 0)));
@@ -273,7 +249,7 @@ function renderBoard(data) {
       // - drafted round >= 6
       // - still on same team's roster NOW
       // - NOT a keeper already
-      // - NEVER dropped/traded
+      // - NEVER dropped/traded (movedSet)
       let isEligible = false;
       if (canComputeEligibility) {
         const roster = rosterSets[teamKey];
@@ -288,6 +264,7 @@ function renderBoard(data) {
           neverMoved;
       }
 
+      // If toggle ON: dim non-eligible
       if (keeperToggleState.enabled && canComputeEligibility && !isEligible) {
         cell.style.opacity = "0.25";
         cell.style.filter = "grayscale(0.35)";
@@ -302,21 +279,22 @@ function renderBoard(data) {
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // ✅ Single badge slot (no hidden placeholder)
-      let badgeText = "";
-      let badgeClass = "draft-keeper-badge";
+      // --- BADGES RAIL (space reserved; no shifting) ---
+      const badges = el("div", "draft-badges");
 
-      if (pick.is_keeper) {
-        badgeText = "Keeper";
-        badgeClass = "draft-keeper-badge";
-      } else if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
-        badgeText = "Eligible";
-        badgeClass = "draft-eligible-badge"; // optional, falls back if you don’t add CSS
-      }
+      // Keeper badge: always create, hide via CSS class if not keeper
+      const keeperBadge = el("span", "draft-keeper-badge", "Keeper");
+      if (!pick.is_keeper) keeperBadge.classList.add("is-hidden");
+      badges.appendChild(keeperBadge);
 
-      if (badgeText) {
-        left.appendChild(el("span", badgeClass, badgeText));
+      // Eligible badge: always create, only show when toggle ON + eligible
+      const eligibleBadge = el("span", "draft-keeper-badge draft-eligible-badge", "Eligible");
+      if (!(keeperToggleState.enabled && canComputeEligibility && isEligible)) {
+        eligibleBadge.classList.add("is-hidden");
       }
+      badges.appendChild(eligibleBadge);
+
+      left.appendChild(badges);
 
       const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
       const right = el("div", "draft-pick-meta", metaText);
@@ -324,7 +302,7 @@ function renderBoard(data) {
       top.appendChild(left);
       top.appendChild(right);
 
-      // Player row
+      // Player row (portrait + name)
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
@@ -348,6 +326,7 @@ function renderBoard(data) {
 
       cell.appendChild(top);
       cell.appendChild(playerRow);
+
       row.appendChild(cell);
     }
 
