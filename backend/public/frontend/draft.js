@@ -72,32 +72,6 @@ function getMovedPlayersSet(data) {
 }
 
 // -------------------------
-// Position class helpers
-// -------------------------
-function normalizePos(pos) {
-  const p = String(pos || "").toUpperCase().trim();
-  // Yahoo sometimes uses DEF, sometimes D/ST. We'll treat both as DEF.
-  if (p === "D/ST") return "DEF";
-  return p;
-}
-
-function posClass(pos) {
-  const p = normalizePos(pos);
-  if (!p) return "pos-unk";
-
-  // common positions
-  if (p === "QB") return "pos-qb";
-  if (p === "RB") return "pos-rb";
-  if (p === "WR") return "pos-wr";
-  if (p === "TE") return "pos-te";
-  if (p === "K") return "pos-k";
-  if (p === "DEF") return "pos-def";
-
-  // anything else (IDP etc.)
-  return "pos-other";
-}
-
-// -------------------------
 // Toggle UI
 // -------------------------
 let keeperToggleState = {
@@ -126,11 +100,7 @@ function ensureToggleUI() {
   cb.style.margin = "0";
   cb.style.transform = "translateY(1px)";
 
-  const txt = el(
-    "span",
-    "",
-    "Show keeper-eligible (Rd 6+, no drop/trade)"
-  );
+  const txt = el("span", "", "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)");
   wrap.appendChild(cb);
   wrap.appendChild(txt);
 
@@ -152,7 +122,9 @@ function setToggleReady(isReady) {
   if (!cb) return;
 
   cb.disabled = !isReady;
-  cb.title = isReady ? "" : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
+  cb.title = isReady
+    ? ""
+    : "Eligibility needs current rosters + movedPlayers included in /draftboard-data.";
 }
 
 // -------------------------
@@ -210,6 +182,7 @@ function renderBoard(data) {
 
   boardEl.style.setProperty("--cols", String(draftOrder.length));
 
+  // Header
   const header = el("div", "draft-grid-header");
   header.appendChild(el("div", "draft-corner", "Rnd"));
 
@@ -246,6 +219,7 @@ function renderBoard(data) {
 
   boardEl.appendChild(header);
 
+  // Body grid
   const grid = el("div", "draft-grid");
 
   const maxRound =
@@ -268,14 +242,11 @@ function renderBoard(data) {
         continue;
       }
 
-      // ✅ ADD POSITION CLASS FOR COLOR CODING
-      cell.classList.add(posClass(pick.player_pos));
-
       // Eligible if:
       // - drafted round >= 6
       // - still on same team's roster NOW
       // - NOT a keeper already
-      // - NEVER dropped/traded (movedSet)
+      // - NEVER dropped/traded
       let isEligible = false;
       if (canComputeEligibility) {
         const roster = rosterSets[teamKey];
@@ -298,20 +269,26 @@ function renderBoard(data) {
         cell.style.filter = "";
       }
 
+      // Top row
       const top = el("div", "draft-pick-top");
 
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-if (pick.is_keeper) {
-  left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
-} else {
-  left.appendChild(el("span", "draft-keeper-badge draft-keeper-placeholder", "Keeper"));
-}
+      // ✅ Single badge slot (no hidden placeholder)
+      let badgeText = "";
+      let badgeClass = "draft-keeper-badge";
 
+      if (pick.is_keeper) {
+        badgeText = "Keeper";
+        badgeClass = "draft-keeper-badge";
+      } else if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
+        badgeText = "Eligible";
+        badgeClass = "draft-eligible-badge"; // optional, falls back if you don’t add CSS
+      }
 
-      if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
-        left.appendChild(el("span", "draft-keeper-badge", "Eligible"));
+      if (badgeText) {
+        left.appendChild(el("span", badgeClass, badgeText));
       }
 
       const metaText = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
@@ -320,6 +297,7 @@ if (pick.is_keeper) {
       top.appendChild(left);
       top.appendChild(right);
 
+      // Player row
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
@@ -343,7 +321,6 @@ if (pick.is_keeper) {
 
       cell.appendChild(top);
       cell.appendChild(playerRow);
-
       row.appendChild(cell);
     }
 
