@@ -424,3 +424,24 @@ body {
   display: block;
 }
 
+/* Keeper badge (fixed height) */
+.draft-keeper-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;                 /* FIXED HEIGHT */
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-strong);
+  background: rgba(255, 142, 60, 0.12);
+  border: 1px solid rgba(255, 142, 60, 0.28);
+  white-space: nowrap;
+}
+
+/* Invisible placeholder to preserve spacing */
+.draft-keeper-placeholder {
+  visibility: hidden;           /* takes space, not visible */
+  height: 18px;
+}
