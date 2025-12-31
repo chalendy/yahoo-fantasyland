@@ -147,7 +147,7 @@ function ensureToggleUI() {
   const txt = el(
     "span",
     "",
-    "Show keeper-eligible (Rd 6+ · still rostered · never dropped/traded · not a keeper)"
+    "Show keeper-eligible (Rd 6+, never dropped/traded, not a keeper)"
   );
 
   wrap.appendChild(cb);
