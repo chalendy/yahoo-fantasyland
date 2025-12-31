@@ -1,8 +1,7 @@
 /* =========================
-   Draft Board Theme + Layout
-   ========================= */
+   THEME (keep as-is)
+========================= */
 
-/* Keep your theme (same palette as matchups) */
 :root {
   --bg: #060714;
   --bg-elevated: #101322;
@@ -17,14 +16,10 @@
   --radius-lg: 16px;
   --radius-md: 10px;
 
-  /* Board tuning */
-  --round-col: 44px;      /* thinner round column */
-  --team-cols: 12;        /* your league is 12 teams */
-  --cell-pad-y: 6px;
-  --cell-pad-x: 6px;
-  --cell-font: 12px;
-  --cell-line: 1.2;
-  --header-font: 11px;
+  /* Layout tuning */
+  --round-col: 56px;         /* width of the "Rnd" column */
+  --cell-min: 190px;         /* minimum width per team column */
+  --cell-max: 1fr;           /* how they expand */
 }
 
 *,
@@ -37,28 +32,31 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #1a1b3a 0, #060714 55%);
   color: var(--text);
 }
 
-/* Page shell */
+/* =========================
+   PAGE SHELL
+========================= */
+
 .app-shell {
   min-height: 100vh;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 16px 32px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .app-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .app-header h1 {
@@ -72,19 +70,20 @@ body {
   color: var(--text-muted);
 }
 
-.controls-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  border: 1px solid var(--border-subtle);
-}
-
-.button-row {
+.app-main {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 14px;
 }
 
+.app-footer {
+  margin-top: auto;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Buttons (if you have them on this page) */
 .btn {
   border-radius: 999px;
   border: none;
@@ -119,205 +118,247 @@ body {
   background: #1e2236;
 }
 
-.status-message {
-  margin: 10px 0 0;
+/* Status line */
+#status {
+  margin: 0;
   font-size: 0.85rem;
   color: var(--accent-strong);
 }
 
-/* Board panel */
-.draft-panel {
+/* =========================
+   DRAFT BOARD WRAPPER
+   (Horizontal scroll is BACK)
+========================= */
+
+#draftBoard {
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
-  padding: 14px 14px 16px;
+  padding: 12px;
 }
 
-/* IMPORTANT:
-   - No forced horizontal scroll on desktop.
-   - Still keeps everything visible by shrinking typography / padding.
-*/
-#draftBoard {
+/* This is what restores the "board" behavior.
+   If you removed overflow before, it will collapse into one column. */
+.draft-board-scroll {
   width: 100%;
-  overflow: hidden; /* prevent the random scrollbar */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px; /* space for scrollbar without covering content */
 }
 
-/* Header row (teams) */
+/* Optional: nicer scrollbar (WebKit) */
+.draft-board-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.draft-board-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+.draft-board-scroll::-webkit-scrollbar-thumb {
+  background: rgba(127, 90, 240, 0.35);
+  border-radius: 999px;
+}
+.draft-board-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 90, 240, 0.5);
+}
+
+/* =========================
+   GRID LAYOUT
+========================= */
+
+/* The inner grid should be wider than the screen when needed.
+   This prevents the “everything became one column” issue. */
+.draft-grid {
+  min-width: calc(var(--round-col) + (12 * var(--cell-min)));
+}
+
+/* Header row grid */
 .draft-grid-header {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--team-cols), minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), var(--cell-max)));
+  gap: 10px;
   align-items: stretch;
-  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 8px;
+  background: linear-gradient(180deg, rgba(16, 19, 34, 0.95), rgba(16, 19, 34, 0.65));
+  backdrop-filter: blur(6px);
 }
 
+/* "Rnd" corner cell */
 .draft-corner {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--header-font);
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--text-muted);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated-soft);
-  padding: 6px 4px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  height: 56px;
 }
 
 /* Team header cell */
 .draft-team-header {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.18), transparent 55%),
-              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.16), transparent 60%),
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.20), transparent 55%),
               var(--bg-elevated-soft);
-  padding: 6px 6px;
-  min-width: 0;
+  padding: 8px 10px;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  min-width: var(--cell-min);
 }
 
-/* logo */
 .draft-team-logo {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255,255,255,0.2);
   flex: 0 0 auto;
 }
 
-/* name */
-.draft-team-name {
-  min-width: 0;
-  font-size: var(--header-font);
-  font-weight: 700;
-  line-height: 1.15;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Board body wrapper */
-.draft-grid {
+.draft-team-text {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  min-width: 0;
 }
 
-/* Each round row — THIS keeps teams as columns */
+.draft-team-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.draft-team-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Each round row grid */
 .draft-row {
   display: grid;
-  grid-template-columns: var(--round-col) repeat(var(--team-cols), minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: var(--round-col) repeat(var(--cols), minmax(var(--cell-min), var(--cell-max)));
+  gap: 10px;
   align-items: stretch;
+  margin-bottom: 10px;
 }
 
-/* Round label */
+/* Round label cell */
 .draft-round-cell {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--accent-strong);
-  background: rgba(255, 142, 60, 0.12);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 142, 60, 0.22);
+  min-height: 74px;
 }
 
 /* Pick cell */
 .draft-pick-cell {
-  min-width: 0;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated-soft);
-  padding: var(--cell-pad-y) var(--cell-pad-x);
+  background: radial-gradient(circle at top left, rgba(127, 90, 240, 0.14), transparent 55%),
+              radial-gradient(circle at bottom right, rgba(255, 142, 60, 0.12), transparent 60%),
+              var(--bg-elevated-soft);
+  padding: 10px 10px 9px;
+  min-height: 74px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  line-height: var(--cell-line);
-}
-
-/* Top line in pick cell */
-.draft-pick-top {
-  display: flex;
-  align-items: baseline;
   justify-content: space-between;
   gap: 6px;
 }
 
+.draft-pick-empty {
+  color: rgba(255,255,255,0.35);
+  font-size: 0.9rem;
+}
+
+/* Top meta line */
+.draft-pick-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .draft-pick-num {
-  font-weight: 800;
-  font-size: 11px;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--text-muted);
-  flex: 0 0 auto;
 }
 
 .draft-pick-meta {
-  font-size: 11px;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  text-align: right;
 }
 
 /* Player name */
 .draft-player-name {
-  font-size: var(--cell-font);
-  font-weight: 700;
-  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.15;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap; /* keeps columns narrow */
 }
 
-/* Empty pick */
-.draft-pick-empty {
-  color: rgba(245, 245, 247, 0.35);
-  font-weight: 700;
-  text-align: center;
-  padding: 6px 0;
-}
-
-/* Keeper badge (if your JS adds it) */
+/* Keeper badge */
 .draft-keeper-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--accent-strong);
-  background: rgba(255, 142, 60, 0.12);
-  border: 1px solid rgba(255, 142, 60, 0.22);
-  padding: 2px 8px;
+  font-size: 0.7rem;
+  padding: 3px 8px;
   border-radius: 999px;
+  border: 1px solid rgba(255, 142, 60, 0.35);
+  background: rgba(255, 142, 60, 0.12);
+  color: var(--accent-strong);
   width: fit-content;
 }
 
-/* Footer */
-.app-footer {
-  margin-top: auto;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
+/* =========================
+   RESPONSIVE
+========================= */
 
-/* ---------- Responsive ----------
-   On small screens, a 13-column board truly can't “fit”.
-   So we allow horizontal scroll ONLY under 900px.
-*/
 @media (max-width: 900px) {
-  #draftBoard {
-    overflow-x: auto;
-    padding-bottom: 6px;
+  :root {
+    --cell-min: 170px;
+    --round-col: 52px;
   }
 
-  .draft-grid-header,
-  .draft-row {
-    min-width: 980px; /* keeps the grid usable on mobile */
+  .draft-team-header {
+    height: 54px;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --cell-min: 160px;
+    --round-col: 48px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
