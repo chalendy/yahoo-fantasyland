@@ -43,13 +43,8 @@ function teamShort(teamKey) {
 // Eligibility helpers
 // League rule:
 // - Keep 1 player next year IF drafted in Round 6+ AND still on your roster (not dropped)
-// We implement a toggle to show/hide eligible players.
-// This requires current roster player_keys per team in /draftboard-data.
-// Expected shapes (any one):
-//   data.rostersByTeamKey[team_key] = ["461.p.x", ...]
-//   data.currentRostersByTeamKey[team_key] = [...]
-//   data.rosters[team_key] = [...]
-// If not present, the toggle will show a message and do nothing.
+// This uses current rosters per team from /draftboard-data:
+//   data.currentRostersByTeamKey[team_key] = ["461.p.x", ...]
 // -------------------------
 function getCurrentRostersMap(data) {
   return (
@@ -84,14 +79,12 @@ let keeperToggleState = {
 };
 
 function ensureToggleUI() {
-  // Place beside buttons if possible, otherwise above board
   const host =
     document.querySelector(".button-row") ||
     document.querySelector(".controls-card") ||
     document.querySelector(".app-header") ||
     document.body;
 
-  // avoid duplicating
   if (document.getElementById("keeperEligibleToggle")) return;
 
   const wrap = el("label", "btn btn-secondary");
@@ -112,15 +105,12 @@ function ensureToggleUI() {
 
   cb.addEventListener("change", () => {
     keeperToggleState.enabled = cb.checked;
-    // re-render from existing cached data if available
     if (window.__draftDataCache) renderBoard(window.__draftDataCache);
   });
 
-  // Insert near reload if present
   if (host.classList?.contains("button-row")) {
     host.appendChild(wrap);
   } else {
-    // put it just before the board
     boardEl?.parentNode?.insertBefore(wrap, boardEl);
   }
 }
@@ -133,7 +123,7 @@ function setToggleReady(isReady) {
   cb.disabled = !isReady;
   cb.title = isReady
     ? ""
-    : "Roster data not included in /draftboard-data yet (need current rosters by team_key).";
+    : "Roster data not included in /draftboard-data yet (need currentRostersByTeamKey).";
 }
 
 // -------------------------
@@ -159,7 +149,6 @@ async function loadDraftBoard() {
 
   window.__draftDataCache = data;
 
-  // Toggle readiness: only "ready" if we have rosters
   const rawRosters = getCurrentRostersMap(data);
   const rosterSets = normalizeRosterMap(rawRosters);
   setToggleReady(!!rosterSets);
@@ -263,7 +252,7 @@ function renderBoard(data) {
         isEligible = roundNum >= 6 && !!roster?.has(playerKey);
       }
 
-      // If toggle is ON and we can compute: dim non-eligible cells
+      // Toggle behavior: dim non-eligible
       if (keeperToggleState.enabled && canComputeEligibility && !isEligible) {
         cell.style.opacity = "0.25";
         cell.style.filter = "grayscale(0.35)";
@@ -272,20 +261,17 @@ function renderBoard(data) {
         cell.style.filter = "";
       }
 
-      // Top row: pick # + badges on left, meta on right
+      // Top row: pick # + badges left, meta right
       const top = el("div", "draft-pick-top");
 
       const left = el("div", "draft-pick-left");
       left.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-      // Existing keeper badge (from API logic)
-      if (pick.is_keeper) {
-        left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
-      }
+      // Existing keeper badge (from API week1 keeper flag)
+      if (pick.is_keeper) left.appendChild(el("span", "draft-keeper-badge", "Keeper"));
 
-      // Eligibility badge (only show when toggle ON; otherwise keep UI clean)
+      // Eligibility badge only when toggle is ON
       if (keeperToggleState.enabled && canComputeEligibility && isEligible) {
-        // Reuse the keeper badge styling but different text (no CSS changes required)
         left.appendChild(el("span", "draft-keeper-badge", "Eligible"));
       }
 
@@ -295,7 +281,7 @@ function renderBoard(data) {
       top.appendChild(left);
       top.appendChild(right);
 
-      // Player row: portrait + name (portrait optional)
+      // Player row: portrait + name
       const playerRow = el("div", "draft-player-row");
       playerRow.style.display = "flex";
       playerRow.style.alignItems = "center";
