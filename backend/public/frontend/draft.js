@@ -99,12 +99,24 @@ async function loadDraftBoard() {
       if (!pick) {
         cell.appendChild(el("div", "draft-pick-empty", "—"));
       } else {
-        const top = el("div", "draft-pick-top");
+const top = el("div", "draft-pick-top");
 
-        top.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
+const numWrap = el("div", "draft-pick-num-wrap");
+numWrap.appendChild(el("div", "draft-pick-num", `#${pick.pick}`));
 
-        const metaLine = `${pick.player_pos || ""}${pick.player_team ? " · " + pick.player_team : ""}`.trim();
-        top.appendChild(el("div", "draft-pick-meta", metaLine || "\u00A0"));
+if (pick.is_keeper) {
+  numWrap.appendChild(el("span", "draft-keeper-badge", "Keeper"));
+}
+
+top.appendChild(numWrap);
+top.appendChild(
+  el(
+    "div",
+    "draft-pick-meta",
+    `${pick.player_pos}${pick.player_team ? " · " + pick.player_team : ""}`
+  )
+);
+
 
         cell.appendChild(top);
 
