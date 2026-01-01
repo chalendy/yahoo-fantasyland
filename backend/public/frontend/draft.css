@@ -356,17 +356,7 @@ body {
   }
 }
 
-/* =========================
-   Mobile: Smaller badges
-========================= */
-@media (max-width: 600px) {
-  .draft-keeper-badge {
-    font-size: 0.45rem;        /* smaller text */
-    padding: 1px 5px;          /* tighter pill */
-    border-radius: 999px;
-    line-height: 1.1;
-    letter-spacing: 0.02em;
-  }
+
 
   /* Optional: slightly reduce spacing between # and badge */
   .draft-pick-left {
@@ -532,4 +522,20 @@ body {
   color: #7f5af0; /* or use var(--accent) if you prefer */
   background: rgba(127, 90, 240, 0.14);
   border: 1px solid rgba(127, 90, 240, 0.32);
+}
+
+/* =========================
+   Mobile: Smaller badges
+========================= */
+@media (max-width: 600px) {
+  .draft-keeper-badge {
+    font-size: 0.45rem;        /* smaller text */
+    padding: 1px 5px;          /* tighter pill */
+    border-radius: 999px;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+  }
+
+.draft-keeper-badge {
+  line-height: 1.1;
 }
