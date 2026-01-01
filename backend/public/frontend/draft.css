@@ -361,8 +361,8 @@ body {
 ========================= */
 @media (max-width: 600px) {
   .draft-keeper-badge {
-    font-size: 0.55rem;        /* smaller text */
-    padding: 1px 6px;          /* tighter pill */
+    font-size: 0.45rem;        /* smaller text */
+    padding: 1px 5px;          /* tighter pill */
     border-radius: 999px;
     line-height: 1.1;
     letter-spacing: 0.02em;
